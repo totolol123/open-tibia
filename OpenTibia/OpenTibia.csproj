@@ -34,6 +34,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -45,6 +46,9 @@
     <Compile Include="OpenTibia.Client.Sprites\SpriteStorage.cs" />
     <Compile Include="OpenTibia.Client.Things\DatFormat.cs" />
     <Compile Include="OpenTibia.Client\ClientFeature.cs" />
+    <Compile Include="OpenTibia.Controls\SpriteListBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="OpenTibia.Core\Version.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

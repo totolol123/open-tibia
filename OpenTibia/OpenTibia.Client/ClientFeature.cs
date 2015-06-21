@@ -31,11 +31,11 @@ namespace OpenTibia.Client
     [Flags]
     public enum ClientFeature
     {
-        None = 1 << 0,
-        PatternZ = 1 << 1,
-        Extended = 1 << 2,
-        FrameGroups = 1 << 3,
-        FrameDurations = 1 << 4,
-        Transparency = 1 << 5
+        None = 0,
+        PatternZ = 1 << 0,
+        Extended = 1 << 1,
+        FrameGroups = 1 << 2,
+        FrameDurations = 1 << 3,
+        Transparency = 1 << 4
     }
 }
