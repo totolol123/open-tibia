@@ -33,6 +33,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -40,6 +41,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="OpenTibia.Client.Sprites\Sprite.cs" />
+    <Compile Include="OpenTibia.Client.Sprites\SpriteStorage.cs" />
+    <Compile Include="OpenTibia.Client.Things\DatFormat.cs" />
+    <Compile Include="OpenTibia.Client\ClientFeature.cs" />
     <Compile Include="OpenTibia.Core\Version.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
