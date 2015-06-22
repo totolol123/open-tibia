@@ -45,7 +45,7 @@ sprites.Save();
 OpenTibia.Core.Version version = new OpenTibia.Core.Version(1079, "Client 10.79", 0x3A71, 0x557A5E34, 0);
 
 // the path to the spr file.
-//string path = @"C:\Clients\10.79\Tibia.spr";
+string path = @"C:\Clients\10.79\Tibia.spr";
 
 // creates a SpriteStorage instance.
 OpenTibia.Client.Sprites.SpriteStorage sprites = new OpenTibia.Client.Sprites.SpriteStorage();

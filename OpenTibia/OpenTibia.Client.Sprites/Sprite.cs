@@ -27,6 +27,7 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.InteropServices;
 #endregion
 
 namespace OpenTibia.Client.Sprites
@@ -139,9 +140,8 @@ namespace OpenTibia.Client.Sprites
             byte[] pixels = this.GetPixels();
             if (pixels != null)
             {
-                Rectangle rect = new Rectangle(0, 0, DefaultSize, DefaultSize);
-                BitmapData bitmapData = this.bitmap.LockBits(rect, ImageLockMode.ReadWrite, this.bitmap.PixelFormat);
-                System.Runtime.InteropServices.Marshal.Copy(pixels, 0, bitmapData.Scan0, pixels.Length);
+                BitmapData bitmapData = this.bitmap.LockBits(Rectangle, ImageLockMode.ReadWrite, this.bitmap.PixelFormat);
+                Marshal.Copy(pixels, 0, bitmapData.Scan0, pixels.Length);
                 this.bitmap.UnlockBits(bitmapData);
             }
 
@@ -157,7 +157,7 @@ namespace OpenTibia.Client.Sprites
 
             if (bitmap.Width != DefaultSize || bitmap.Height != DefaultSize)
             {
-                throw new ArgumentException("Invalid bitmap size", "bitmap");
+                throw new ArgumentException("bitmap", "Invalid bitmap size");
             }
 
             this.CompressedPixels = CompressBitmap(bitmap, this.transparent);
@@ -181,8 +181,11 @@ namespace OpenTibia.Client.Sprites
                 throw new ArgumentNullException("pixels");
             }
 
-            ImageConverter converter = new ImageConverter();
-            byte[] pixels = (byte[])converter.ConvertTo(bitmap, typeof(byte[]));
+            BitmapData bitmapData = bitmap.LockBits(Rectangle, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            byte[] pixels = new byte[PixelsDataSize];
+            Marshal.Copy(bitmapData.Scan0, pixels, 0, PixelsDataSize);
+            bitmap.UnlockBits(bitmapData);
+
             return CompressPixels(pixels, false);
         }
 
@@ -193,8 +196,10 @@ namespace OpenTibia.Client.Sprites
                 throw new ArgumentNullException("pixels");
             }
 
-            ImageConverter converter = new ImageConverter();
-            byte[] pixels = (byte[])converter.ConvertTo(bitmap, typeof(byte[]));
+            BitmapData bitmapData = bitmap.LockBits(Rectangle, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            byte[] pixels = new byte[PixelsDataSize];
+            Marshal.Copy(bitmapData.Scan0, pixels, 0, PixelsDataSize);
+            bitmap.UnlockBits(bitmapData);
 
             return CompressPixels(pixels, transparent);
         }
@@ -209,6 +214,11 @@ namespace OpenTibia.Client.Sprites
             if (pixels == null)
             {
                 throw new ArgumentNullException("pixels");
+            }
+
+            if (pixels.Length != PixelsDataSize)
+            {
+                throw new Exception("Invalid pixels data size");
             }
 
             byte[] compressedPixels;
@@ -230,10 +240,10 @@ namespace OpenTibia.Client.Sprites
                     // Read transparent pixels
                     while (index < length)
                     {
-                        read = index * 4;
+                        read = (index * 4) + 3;
 
-                        uint color = (uint)((pixels[read++] << 0) | (pixels[read++] << 8) | (pixels[read++] << 16) | (pixels[read++] << 24));
-                        if (color != 0)
+                        // alpha
+                        if (pixels[read++] != 0)
                         {
                             break;
                         }
@@ -255,19 +265,23 @@ namespace OpenTibia.Client.Sprites
                         {
                             read = index * 4;
 
-                            uint color = (uint)((pixels[read++] << 0) | (pixels[read++] << 8) | (pixels[read++] << 16) | (pixels[read++] << 24));
-                            if (color == 0)
+                            byte blue = pixels[read++];
+                            byte green = pixels[read++];
+                            byte red = pixels[read++];
+                            byte alpha = pixels[read++];
+
+                            if (alpha == 0)
                             {
                                 break;
                             }
 
-                            writer.Write((byte)(color >> 16 & 0xFF));   // Red
-                            writer.Write((byte)(color >> 8 & 0xFF));    // Green
-                            writer.Write((byte)(color & 0xFF));         // Blue
+                            writer.Write(red);
+                            writer.Write(green);
+                            writer.Write(blue);
 
                             if (transparent)
                             {
-                                writer.Write((byte)(color >> 24 & 0xFF)); // Alpha
+                                writer.Write(alpha);
                             }
 
                             chunkSize++;
@@ -287,23 +301,22 @@ namespace OpenTibia.Client.Sprites
             return compressedPixels;
         }
 
-        public static Bitmap UncompressBitmap(byte[] compressedPixels, int width, int height)
+        public static Bitmap UncompressBitmap(byte[] compressedPixels)
         {
-            return UncompressBitmap(compressedPixels, width, height, false);
+            return UncompressBitmap(compressedPixels, false);
         }
 
-        public static Bitmap UncompressBitmap(byte[] compressedPixels, int width, int height, bool transparent)
+        public static Bitmap UncompressBitmap(byte[] compressedPixels, bool transparent)
         {
             if (compressedPixels == null)
             {
                 throw new ArgumentNullException("compressedPixels");
             }
 
-            Bitmap bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            Bitmap bitmap = new Bitmap(DefaultSize, DefaultSize, PixelFormat.Format32bppArgb);
             byte[] pixels = UncompressPixels(compressedPixels, transparent);
-            Rectangle rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
-            BitmapData bitmapData = bitmap.LockBits(rect, ImageLockMode.ReadWrite, bitmap.PixelFormat);
-            System.Runtime.InteropServices.Marshal.Copy(pixels, 0, bitmapData.Scan0, pixels.Length);
+            BitmapData bitmapData = bitmap.LockBits(Rectangle, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            Marshal.Copy(pixels, 0, bitmapData.Scan0, PixelsDataSize);
             bitmap.UnlockBits(bitmapData);
             return bitmap;
         }
@@ -367,6 +380,12 @@ namespace OpenTibia.Client.Sprites
 
             return pixels;
         }
+
+        #endregion
+
+        #region Class Properties
+
+        public static readonly Rectangle Rectangle = new Rectangle(0, 0, DefaultSize, DefaultSize);
 
         #endregion
     }

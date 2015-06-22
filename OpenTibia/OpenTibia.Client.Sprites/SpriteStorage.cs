@@ -367,6 +367,16 @@ namespace OpenTibia.Client.Sprites
             return null;
         }
 
+        public Sprite GetSprite(int id)
+        {
+            if (id >= 0)
+            {
+                return this.GetSprite((uint)id);
+            }
+
+            return null;
+        }
+
         public Bitmap GetSpriteBitmap(uint id)
         {
             if (id <= this.Count)
@@ -381,42 +391,65 @@ namespace OpenTibia.Client.Sprites
         {
             if (!this.IsTemporary && this.Changed)
             {
-                return this.SaveAs(this.FilePath, this.Version);
+                return this.Save(this.FilePath);
             }
 
             return false;
         }
 
-        public bool SaveAs(string path, OpenTibia.Core.Version version, ClientFeature features)
+        public bool Save(string path)
         {
             if (path == null)
             {
                 throw new ArgumentNullException("path");
             }
 
+            if (!this.Loaded)
+            {
+                return false;
+            }
+
+            if (!this.Changed)
+            {
+                //  only copy the content and reload if nothing has changed.
+                if (this.FilePath != null && !path.Equals(this.FilePath))
+                {
+                    File.Copy(this.FilePath, path, true);
+
+                    if (!this.Reload(this.FilePath, path))
+                    {
+                        return false;
+                    }
+
+                    if (this.StorageCompiled != null)
+                    {
+                        this.StorageCompiled(this, new EventArgs());
+                    }
+                }
+
+                return true;
+            }
+
             string tmpPath = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + ".tmp");
-            bool extended = (features & ClientFeature.Extended) == ClientFeature.Extended || version.Value >= (ushort)DatFormat.Format_960;
-            byte headSize = 0;
-            uint count = 0;
 
             try
             {
                 using (BinaryWriter writer = new BinaryWriter(new FileStream(tmpPath, FileMode.Create)))
                 {
+                    uint count = 0;
+
                     // write the signature
-                    writer.Write((uint)version.SprSignature);
+                    writer.Write((uint)this.Version.SprSignature);
 
                     // write the sprite count
-                    if (extended)
+                    if (this.Extended)
                     {
                         count = this.Count;
-                        headSize = HeaderU32;
                         writer.Write((uint)count);
                     }
                     else
                     {
                         count = this.Count >= 0xFFFE ? 0xFFFE : this.Count;
-                        headSize = HeaderU16;
                         writer.Write((ushort)count);
                     }
 
@@ -514,17 +547,17 @@ namespace OpenTibia.Client.Sprites
                 return false;
             }
 
+            if (!this.Reload(tmpPath, path))
+            {
+                return  false;
+            }
+
             if (this.StorageCompiled != null)
             {
                 this.StorageCompiled(this, new EventArgs());
             }
 
             return true;
-        }
-
-        public bool SaveAs(string path, OpenTibia.Core.Version version)
-        {
-            return this.SaveAs(path, version, ClientFeature.None);
         }
 
         public bool Unload()
@@ -559,6 +592,47 @@ namespace OpenTibia.Client.Sprites
         #endregion
 
         #region Private Methods
+
+        private bool Reload(string oldPath, string newPath)
+        {
+            if (!File.Exists(oldPath))
+            {
+                return false;
+            }
+
+            try
+            {
+                if (this.reader != null)
+                {
+                    this.reader.Dispose();
+                    this.reader = null;
+                    this.stream = null;
+                }
+
+                if (File.Exists(newPath))
+                {
+                    File.Delete(newPath);
+                }
+
+                File.Move(oldPath, newPath);
+
+                this.FilePath = newPath;
+                this.stream = new FileStream(newPath, FileMode.Open);
+                this.reader = new BinaryReader(this.stream);
+                this.sprites.Clear();
+                this.rawSpriteCount = this.Extended ? this.reader.ReadUInt32() : this.reader.ReadUInt16();
+                this.Count = this.rawSpriteCount;
+                this.Changed = false;
+                this.Loaded = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return false;
+            }
+
+            return true;
+        }
 
         private Sprite ReadSprite(uint id)
         {

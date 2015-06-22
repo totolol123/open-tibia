@@ -26,16 +26,17 @@
 using System;
 #endregion
 
-namespace OpenTibia.Client
+namespace OpenTibia.Geom
 {
-    [Flags]
-    public enum ClientFeature
+    public enum Direction : byte
     {
-        None = 0,
-        PatternZ = 1 << 0,
-        Extended = 1 << 1,
-        FrameDurations = 1 << 2,
-        FrameGroups = 1 << 3,
-        Transparency = 1 << 4
+        North = 0,
+        East = 1,
+        South = 2,
+        West = 3,
+        Southwest = 4,
+        Southeast = 5,
+        Northwest = 6,
+        Northeast = 7
     }
 }

@@ -23,19 +23,59 @@
 #endregion
 
 #region Using Statements
+using OpenTibia.Geom;
 using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 #endregion
 
-namespace OpenTibia.Client
+namespace OpenTibia.Client.Sprites
 {
-    [Flags]
-    public enum ClientFeature
+    public class SpriteSheet
     {
-        None = 0,
-        PatternZ = 1 << 0,
-        Extended = 1 << 1,
-        FrameDurations = 1 << 2,
-        FrameGroups = 1 << 3,
-        Transparency = 1 << 4
+        #region Constructor
+
+        public SpriteSheet(Bitmap bitmap, Dictionary<int, Rect> rectList)
+        {
+            if (bitmap == null)
+            {
+                throw new ArgumentNullException("bitmap");
+            }
+
+            if (rectList == null || rectList.Count == 0)
+            {
+                throw new ArgumentNullException("rectList");
+            }
+
+            this.Bitmap = bitmap;
+            this.RectList = rectList;
+        }
+
+        #endregion
+
+        #region Public Properties
+
+        public Bitmap Bitmap { get; private set; }
+
+        public Dictionary<int, Rect> RectList { get; private set; }
+
+        #endregion
+
+        #region Public Methods
+        
+        public bool Save(string path, ImageFormat format)
+        {
+            this.Bitmap.Save(path, format);
+            return true;
+        }
+
+        public bool Save(string path)
+        {
+            this.Bitmap.Save(path, ImageFormat.Png);
+            return true;
+        }
+
+        #endregion
     }
 }
