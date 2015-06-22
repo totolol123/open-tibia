@@ -29,11 +29,36 @@ using System.IO;
 using System.Collections.Generic;
 using OpenTibia.Client.Things;
 using OpenTibia.Core;
+using System.ComponentModel;
+using System.Threading;
 #endregion
 
 namespace OpenTibia.Client.Sprites
 {
-    public delegate void SpriteListChanged(object sender, Sprite[] changedSprites, StorageChangeType type);
+    public class SpriteListChangedArgs
+    {
+        #region Constructor
+        
+        public SpriteListChangedArgs(Sprite[] changedSprites, StorageChangeType changeType)
+        {
+            this.ChangedSprites = changedSprites;
+            this.ChangeType = changeType;
+        }
+
+        #endregion
+
+        #region Public Properties
+
+        public Sprite[] ChangedSprites { get; private set; }
+
+        public StorageChangeType ChangeType { get; private set; }
+
+        #endregion
+    }
+
+    public delegate void SpriteListChangedHandler(object sender, SpriteListChangedArgs e);
+
+    public delegate void ProgressHandler(object sender, int percentage);
 
     public class SpriteStorage : IStorage
     {
@@ -52,6 +77,9 @@ namespace OpenTibia.Client.Sprites
         private uint rawSpriteCount;
         private byte headSize;
         private Sprite blankSprite;
+        private BackgroundWorker worker;
+        private string newPath;
+        private string tmpPath;
 
         #endregion
 
@@ -60,6 +88,12 @@ namespace OpenTibia.Client.Sprites
         public SpriteStorage()
         {
             this.sprites = new Dictionary<uint, Sprite>();
+            this.worker = new BackgroundWorker();
+            this.worker.WorkerSupportsCancellation = true;
+            this.worker.WorkerReportsProgress = true;
+            this.worker.DoWork += new DoWorkEventHandler(this.DoWork_Handler);
+            this.worker.ProgressChanged += new ProgressChangedEventHandler(this.WorkerProgressChanged_Handler);
+            this.worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(this.RunWorkerCompleted_Handler);
         }
 
         #endregion
@@ -68,11 +102,15 @@ namespace OpenTibia.Client.Sprites
 
         public event EventHandler StorageLoaded;
 
-        public event SpriteListChanged StorageChanged;
+        public event SpriteListChangedHandler StorageChanged;
 
         public event EventHandler StorageCompiled;
 
+        public event EventHandler StorageCompilationCanceled;
+
         public event EventHandler StorageUnloaded;
+
+        public event ProgressHandler ProgressChanged;
 
         #endregion
 
@@ -100,6 +138,8 @@ namespace OpenTibia.Client.Sprites
 
         public bool Loaded { get; private set; }
 
+        public bool Compiling { get; private set; }
+
         #endregion
 
         #region Public Methods
@@ -121,6 +161,7 @@ namespace OpenTibia.Client.Sprites
             this.Count = 1;
             this.Changed = false;
             this.Loaded = true;
+            this.Compiling = false;
 
             if (this.StorageLoaded != null)
             {
@@ -219,7 +260,7 @@ namespace OpenTibia.Client.Sprites
 
             if (this.StorageChanged != null)
             {
-                this.StorageChanged(this, new Sprite[] { sprite }, StorageChangeType.Add);
+                this.StorageChanged(this, new SpriteListChangedArgs(new Sprite[] { sprite }, StorageChangeType.Add));
             }
 
             return true;
@@ -240,7 +281,7 @@ namespace OpenTibia.Client.Sprites
 
             if (this.StorageChanged != null)
             {
-                this.StorageChanged(this, new Sprite[] { sprite }, StorageChangeType.Add);
+                this.StorageChanged(this, new SpriteListChangedArgs(new Sprite[] { sprite }, StorageChangeType.Add));
             }
 
             return true;
@@ -275,7 +316,7 @@ namespace OpenTibia.Client.Sprites
 
                 if (this.StorageChanged != null)
                 {
-                    this.StorageChanged(this, changedSprites.ToArray(), StorageChangeType.Add);
+                    this.StorageChanged(this, new SpriteListChangedArgs(changedSprites.ToArray(), StorageChangeType.Add));
                 }
 
                 return true;
@@ -312,7 +353,7 @@ namespace OpenTibia.Client.Sprites
 
                 if (this.StorageChanged != null)
                 {
-                    this.StorageChanged(this, changedSprites.ToArray(), StorageChangeType.Add);
+                    this.StorageChanged(this, new SpriteListChangedArgs(changedSprites.ToArray(), StorageChangeType.Add));
                 }
 
                 return true;
@@ -348,7 +389,7 @@ namespace OpenTibia.Client.Sprites
 
             if (this.StorageChanged != null)
             {
-                this.StorageChanged(this, new Sprite[] { replacedSprite }, StorageChangeType.Replace);
+                this.StorageChanged(this, new SpriteListChangedArgs(new Sprite[] { replacedSprite }, StorageChangeType.Replace));
             }
 
             return true;
@@ -389,7 +430,7 @@ namespace OpenTibia.Client.Sprites
 
             if (this.StorageChanged != null)
             {
-                this.StorageChanged(this, new Sprite[] { replacedSprite }, StorageChangeType.Replace);
+                this.StorageChanged(this, new SpriteListChangedArgs(new Sprite[] { replacedSprite }, StorageChangeType.Replace));
             }
 
             return true;
@@ -436,7 +477,7 @@ namespace OpenTibia.Client.Sprites
 
                 if (this.StorageChanged != null)
                 {
-                    this.StorageChanged(this, changedSprites.ToArray(), StorageChangeType.Replace);
+                    this.StorageChanged(this, new SpriteListChangedArgs(changedSprites.ToArray(), StorageChangeType.Replace));
                 }
 
                 return true;
@@ -479,7 +520,7 @@ namespace OpenTibia.Client.Sprites
 
             if (this.StorageChanged != null)
             {
-                this.StorageChanged(this, new Sprite[] { removedSprite }, StorageChangeType.Remove);
+                this.StorageChanged(this, new SpriteListChangedArgs(new Sprite[] { removedSprite }, StorageChangeType.Remove));
             }
 
             return true;
@@ -533,7 +574,7 @@ namespace OpenTibia.Client.Sprites
 
                 if (this.StorageChanged != null)
                 {
-                    this.StorageChanged(this, changedSprites.ToArray(), StorageChangeType.Remove);
+                    this.StorageChanged(this, new SpriteListChangedArgs(changedSprites.ToArray(), StorageChangeType.Remove));
                 }
             }
 
@@ -602,7 +643,7 @@ namespace OpenTibia.Client.Sprites
                 throw new ArgumentNullException("path");
             }
 
-            if (!this.Loaded)
+            if (!this.Loaded || this.Compiling)
             {
                 return false;
             }
@@ -628,134 +669,23 @@ namespace OpenTibia.Client.Sprites
                 return true;
             }
 
-            string tmpPath = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + ".tmp");
-
-            try
-            {
-                using (BinaryWriter writer = new BinaryWriter(new FileStream(tmpPath, FileMode.Create)))
-                {
-                    uint count = 0;
-
-                    // write the signature
-                    writer.Write((uint)this.Version.SprSignature);
-
-                    // write the sprite count
-                    if (this.Extended)
-                    {
-                        count = this.Count;
-                        writer.Write((uint)count);
-                    }
-                    else
-                    {
-                        count = this.Count >= 0xFFFE ? 0xFFFE : this.Count;
-                        writer.Write((ushort)count);
-                    }
-
-                    int addressPosition = headSize;
-                    int address = (int)((count * 4) + headSize);
-                    byte[] bytes = null;
-
-                    for (uint id = 1; id <= count; id++)
-                    {
-                        writer.Seek(addressPosition, SeekOrigin.Begin);
-
-                        if (this.sprites.ContainsKey(id))
-                        {
-                            Sprite sprite = this.sprites[id];
-
-                            if (sprite.Length == 0)
-                            {
-                                // write address 0
-                                writer.Write((uint)0);
-                                writer.Seek(address, SeekOrigin.Begin);
-                            }
-                            else
-                            {
-                                bytes = sprite.CompressedPixels;
-
-                                // write address
-                                writer.Write((uint)address);
-                                writer.Seek(address, SeekOrigin.Begin);
-
-                                // write colorkey
-                                writer.Write((byte)0xFF); // red
-                                writer.Write((byte)0x00); // blue
-                                writer.Write((byte)0xFF); // green
-
-                                // write sprite data size
-                                writer.Write((short)bytes.Length);
-
-                                if (bytes.Length > 0)
-                                {
-                                    writer.Write(bytes);
-                                }
-                            }
-                        }
-                        else if (id <= this.rawSpriteCount)
-                        {
-                            this.stream.Seek(((id - 1) * 4) + this.headSize, SeekOrigin.Begin);
-
-                            uint spriteAddress = this.reader.ReadUInt32();
-
-                            if (spriteAddress == 0)
-                            {
-                                // write address 0
-                                writer.Write((uint)0);
-                                writer.Seek(address, SeekOrigin.Begin);
-                            }
-                            else
-                            {
-                                // write address
-                                writer.Write((uint)address);
-                                writer.Seek(address, SeekOrigin.Begin);
-
-                                // write colorkey
-                                writer.Write((byte)0xFF); // red
-                                writer.Write((byte)0x00); // blue
-                                writer.Write((byte)0xFF); // green
-
-                                // sets the position to the pixel data size.
-                                this.stream.Seek(spriteAddress + 3, SeekOrigin.Begin);
-
-                                // read the data size from the current stream
-                                ushort pixelDataSize = this.reader.ReadUInt16();
-
-                                // write sprite data size
-                                writer.Write(pixelDataSize);
-
-                                // write sprite compressed pixels
-                                if (pixelDataSize != 0)
-                                {
-                                    bytes = this.reader.ReadBytes(pixelDataSize);
-                                    writer.Write(bytes);
-                                }
-                            }
-                        }
-
-                        address = (int)writer.BaseStream.Position;
-                        addressPosition += 4;
-                    }
-
-                    writer.Close();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.StackTrace);
-                return false;
-            }
-
-            if (!this.Reload(tmpPath, path))
-            {
-                return  false;
-            }
-
-            if (this.StorageCompiled != null)
-            {
-                this.StorageCompiled(this, new EventArgs());
-            }
-
+            this.newPath = path;
+            this.tmpPath = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + ".tmp");
+            this.worker.RunWorkerAsync();
+            this.Compiling = true;
             return true;
+        }
+
+        public bool Cancel()
+        {
+            if (this.Compiling)
+            {
+                this.worker.CancelAsync();
+                this.Compiling = false;
+                return true;
+            }
+
+            return false;
         }
 
         public bool Unload()
@@ -777,6 +707,9 @@ namespace OpenTibia.Client.Sprites
                 this.Transparency = false;
                 this.Changed = false;
                 this.Loaded = false;
+                this.Compiling = false;
+                this.newPath = null;
+                this.tmpPath = null;
 
                 if (this.StorageUnloaded != null)
                 {
@@ -876,12 +809,183 @@ namespace OpenTibia.Client.Sprites
 
                 return sprite;
             }
-            catch (Exception ex)
+            catch /*(Exception ex)*/
             {
                 // TODO ErrorManager.ShowError(ex);
             }
 
             return null;
+        }
+
+        #endregion
+
+        #region Event Handlers
+
+        private void DoWork_Handler(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker worker = sender as BackgroundWorker;
+
+            using (BinaryWriter writer = new BinaryWriter(new FileStream(this.tmpPath, FileMode.Create)))
+            {
+                uint count = 0;
+
+                // write the signature
+                writer.Write((uint)this.Version.SprSignature);
+
+                // write the sprite count
+                if (this.Extended)
+                {
+                    count = this.Count;
+                    writer.Write((uint)count);
+                }
+                else
+                {
+                    count = this.Count >= 0xFFFE ? 0xFFFE : this.Count;
+                    writer.Write((ushort)count);
+                }
+
+                int addressPosition = headSize;
+                int address = (int)((count * 4) + headSize);
+                byte[] bytes = null;
+
+                for (uint id = 1; id <= count; id++)
+                {
+                    if (worker.CancellationPending)
+                    {
+                        e.Cancel = true;
+                        break;
+                    }
+
+                    writer.Seek(addressPosition, SeekOrigin.Begin);
+
+                    if (this.sprites.ContainsKey(id))
+                    {
+                        Sprite sprite = this.sprites[id];
+
+                        if (sprite.Length == 0)
+                        {
+                            // write address 0
+                            writer.Write((uint)0);
+                            writer.Seek(address, SeekOrigin.Begin);
+                        }
+                        else
+                        {
+                            bytes = sprite.CompressedPixels;
+
+                            // write address
+                            writer.Write((uint)address);
+                            writer.Seek(address, SeekOrigin.Begin);
+
+                            // write colorkey
+                            writer.Write((byte)0xFF); // red
+                            writer.Write((byte)0x00); // blue
+                            writer.Write((byte)0xFF); // green
+
+                            // write sprite data size
+                            writer.Write((short)bytes.Length);
+
+                            if (bytes.Length > 0)
+                            {
+                                writer.Write(bytes);
+                            }
+                        }
+                    }
+                    else if (id <= this.rawSpriteCount)
+                    {
+                        this.stream.Seek(((id - 1) * 4) + this.headSize, SeekOrigin.Begin);
+
+                        uint spriteAddress = this.reader.ReadUInt32();
+
+                        if (spriteAddress == 0)
+                        {
+                            // write address 0
+                            writer.Write((uint)0);
+                            writer.Seek(address, SeekOrigin.Begin);
+                        }
+                        else
+                        {
+                            // write address
+                            writer.Write((uint)address);
+                            writer.Seek(address, SeekOrigin.Begin);
+
+                            // write colorkey
+                            writer.Write((byte)0xFF); // red
+                            writer.Write((byte)0x00); // blue
+                            writer.Write((byte)0xFF); // green
+
+                            // sets the position to the pixel data size.
+                            this.stream.Seek(spriteAddress + 3, SeekOrigin.Begin);
+
+                            // read the data size from the current stream
+                            ushort pixelDataSize = this.reader.ReadUInt16();
+
+                            // write sprite data size
+                            writer.Write(pixelDataSize);
+
+                            // write sprite compressed pixels
+                            if (pixelDataSize != 0)
+                            {
+                                bytes = this.reader.ReadBytes(pixelDataSize);
+                                writer.Write(bytes);
+                            }
+                        }
+                    }
+
+                    address = (int)writer.BaseStream.Position;
+                    addressPosition += 4;
+
+                    if ((id % 500) == 0)
+                    {
+                        Thread.Sleep(10);
+                        worker.ReportProgress((int)((id * 100) / count));
+                    }
+                }
+
+                writer.Close();
+            }
+        }
+
+        private void WorkerProgressChanged_Handler(object sender, ProgressChangedEventArgs e)
+        {
+            if (this.ProgressChanged != null)
+            {
+                this.ProgressChanged(this, e.ProgressPercentage);
+            }
+        }
+
+        private void RunWorkerCompleted_Handler(object sender, RunWorkerCompletedEventArgs e)
+        {
+            if (!e.Cancelled && this.Reload(this.tmpPath, this.newPath))
+            {
+                this.tmpPath = null;
+                this.newPath = null;
+
+                if (this.StorageCompiled != null)
+                {
+                    this.StorageCompiled(this, new EventArgs());
+                }
+
+                if (this.ProgressChanged != null)
+                {
+                    this.ProgressChanged(this, 100);
+                }
+            }
+            else if (File.Exists(tmpPath))
+            {
+                File.Delete(tmpPath);
+                this.tmpPath = null;
+                this.newPath = null;
+
+                if (this.ProgressChanged != null)
+                {
+                    this.ProgressChanged(this, 0);
+                }
+            }
+
+            if (e.Cancelled && this.StorageCompilationCanceled != null)
+            {
+                this.StorageCompilationCanceled(this, new EventArgs());
+            }
         }
 
         #endregion
