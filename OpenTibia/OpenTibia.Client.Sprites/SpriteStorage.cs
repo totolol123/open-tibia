@@ -28,13 +28,14 @@ using System.Drawing;
 using System.IO;
 using System.Collections.Generic;
 using OpenTibia.Client.Things;
+using OpenTibia.Core;
 #endregion
 
 namespace OpenTibia.Client.Sprites
 {
-    public delegate void SpriteListChanged(uint[] changedIds);
+    public delegate void SpriteListChanged(object sender, Sprite[] changedSprites, StorageChangeType type);
 
-    public class SpriteStorage
+    public class SpriteStorage : IStorage
     {
         #region Constants
 
@@ -201,11 +202,11 @@ namespace OpenTibia.Client.Sprites
             return this.Load(path, version, ClientFeature.None);
         }
 
-        public Sprite AddSprite(Sprite sprite)
+        public bool AddSprite(Sprite sprite)
         {
             if (sprite == null)
             {
-                return null;
+                return false;
             }
 
             uint id = ++this.Count;
@@ -218,17 +219,17 @@ namespace OpenTibia.Client.Sprites
 
             if (this.StorageChanged != null)
             {
-                this.StorageChanged(new uint[] { id });
+                this.StorageChanged(this, new Sprite[] { sprite }, StorageChangeType.Add);
             }
 
-            return sprite;
+            return true;
         }
 
-        public Sprite AddSprite(Bitmap bitmap)
+        public bool AddSprite(Bitmap bitmap)
         {
             if (bitmap == null || bitmap.Width != Sprite.DefaultSize || bitmap.Height != Sprite.DefaultSize)
             {
-                return null;
+                return false;
             }
 
             uint id = ++this.Count;
@@ -239,17 +240,92 @@ namespace OpenTibia.Client.Sprites
 
             if (this.StorageChanged != null)
             {
-                this.StorageChanged(new uint[] { id });
+                this.StorageChanged(this, new Sprite[] { sprite }, StorageChangeType.Add);
             }
 
-            return sprite;
+            return true;
         }
 
-        public Sprite ReplaceSprite(Sprite newSprite, uint replaceId)
+        public bool AddSprites(Sprite[] sprites)
+        {
+            if (sprites == null || sprites.Length == 0)
+            {
+                return false;
+            }
+
+            List<Sprite> changedSprites = new List<Sprite>();
+
+            foreach (Sprite sprite in sprites)
+            {
+                if (sprite == null)
+                {
+                    continue;
+                }
+
+                uint id = ++this.Count;
+                sprite.ID = id;
+                sprite.Transparent = this.Transparency;
+                this.sprites.Add(id, sprite);
+                changedSprites.Add(sprite);
+            }
+
+            if (changedSprites.Count != 0)
+            {
+                this.Changed = true;
+
+                if (this.StorageChanged != null)
+                {
+                    this.StorageChanged(this, changedSprites.ToArray(), StorageChangeType.Add);
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool AddSprites(Bitmap[] sprites)
+        {
+            if (sprites == null || sprites.Length == 0)
+            {
+                return false;
+            }
+
+            List<Sprite> changedSprites = new List<Sprite>();
+
+            foreach (Bitmap bitmap in sprites)
+            {
+                if (bitmap == null || bitmap.Width != Sprite.DefaultSize || bitmap.Height != Sprite.DefaultSize)
+                {
+                    continue;
+                }
+
+                uint id = ++this.Count;
+                Sprite sprite = new Sprite(id, this.Transparency);
+                this.sprites.Add(id, sprite);
+                changedSprites.Add(sprite);
+            }
+
+            if (changedSprites.Count != 0)
+            {
+                this.Changed = true;
+
+                if (this.StorageChanged != null)
+                {
+                    this.StorageChanged(this, changedSprites.ToArray(), StorageChangeType.Add);
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool ReplaceSprite(Sprite newSprite, uint replaceId)
         {
             if (newSprite == null || replaceId == 0 || replaceId > this.Count)
             {
-                return null;
+                return false;
             }
 
             newSprite.ID = replaceId;
@@ -272,17 +348,27 @@ namespace OpenTibia.Client.Sprites
 
             if (this.StorageChanged != null)
             {
-                this.StorageChanged(new uint[] { replaceId });
+                this.StorageChanged(this, new Sprite[] { replacedSprite }, StorageChangeType.Replace);
             }
 
-            return replacedSprite;
+            return true;
         }
 
-        public Sprite ReplaceSprite(Bitmap newBitmap, uint replaceId)
+        public bool ReplaceSprite(Sprite newSprite)
+        {
+            if (newSprite != null)
+            {
+                return this.ReplaceSprite(newSprite, newSprite.ID);
+            }
+
+            return false;
+        }
+
+        public bool ReplaceSprite(Bitmap newBitmap, uint replaceId)
         {
             if (newBitmap == null || newBitmap.Width != Sprite.DefaultSize || newBitmap.Height != Sprite.DefaultSize || replaceId == 0 || replaceId > this.Count)
             {
-                return null;
+                return false;
             }
 
             Sprite newSprite = new Sprite(replaceId, this.Transparency);
@@ -303,17 +389,67 @@ namespace OpenTibia.Client.Sprites
 
             if (this.StorageChanged != null)
             {
-                this.StorageChanged(new uint[] { replaceId });
+                this.StorageChanged(this, new Sprite[] { replacedSprite }, StorageChangeType.Replace);
             }
 
-            return replacedSprite;
+            return true;
         }
 
-        public Sprite RemoveSprite(uint id)
+        public bool ReplaceSprites(Sprite[] newSprites)
+        {
+            if (newSprites == null || newSprites.Length == 0)
+            {
+                return false;
+            }
+
+            List<Sprite> changedSprites = new List<Sprite>();
+
+            foreach (Sprite sprite in newSprites)
+            {
+                if (sprite == null || sprite.ID == 0 || sprite.ID > this.Count)
+                {
+                    continue;
+                }
+
+                uint id = sprite.ID;
+                Sprite replacedSprite = null;
+
+                sprite.Transparent = this.Transparency;
+
+                if (this.sprites.ContainsKey(id))
+                {
+                    replacedSprite = this.sprites[id];
+                    this.sprites[id] = sprite;
+                }
+                else
+                {
+                    replacedSprite = this.ReadSprite(id);
+                    this.sprites.Add(id, sprite);
+                }
+
+                changedSprites.Add(replacedSprite);
+            }
+
+            if (changedSprites.Count != 0)
+            {
+                this.Changed = true;
+
+                if (this.StorageChanged != null)
+                {
+                    this.StorageChanged(this, changedSprites.ToArray(), StorageChangeType.Replace);
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool RemoveSprite(uint id)
         {
             if (id == 0 || id > this.Count)
             {
-                return null;
+                return false;
             }
 
             Sprite removedSprite = this.GetSprite(id);
@@ -339,7 +475,69 @@ namespace OpenTibia.Client.Sprites
                 }
             }
 
-            return removedSprite;
+            this.Changed = true;
+
+            if (this.StorageChanged != null)
+            {
+                this.StorageChanged(this, new Sprite[] { removedSprite }, StorageChangeType.Remove);
+            }
+
+            return true;
+        }
+
+        public bool RemoveSprites(uint[] ids)
+        {
+            if (ids == null || ids.Length == 0)
+            {
+                return false;
+            }
+
+            List<Sprite> changedSprites = new List<Sprite>();
+
+            for (int i = 0; i < ids.Length; i++)
+            {
+                uint id = ids[i];
+
+                if (id == 0 || id > this.Count)
+                {
+                    continue;
+                }
+
+                changedSprites.Add(this.GetSprite(id));
+
+                if (id == this.Count && id != 1)
+                {
+                    if (this.sprites.ContainsKey(id))
+                    {
+                        this.sprites.Remove(id);
+                    }
+
+                    this.Count--;
+                }
+                else
+                {
+                    if (this.sprites.ContainsKey(id))
+                    {
+                        this.sprites[id] = new Sprite(id, this.Transparency);
+                    }
+                    else
+                    {
+                        this.sprites.Add(id, new Sprite(id, this.Transparency));
+                    }
+                }
+            }
+
+            if (changedSprites.Count != 0)
+            {
+                this.Changed = true;
+
+                if (this.StorageChanged != null)
+                {
+                    this.StorageChanged(this, changedSprites.ToArray(), StorageChangeType.Remove);
+                }
+            }
+
+            return false;
         }
 
         public bool HasSpriteID(uint id)

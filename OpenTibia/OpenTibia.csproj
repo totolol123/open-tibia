@@ -50,6 +50,7 @@
     <Compile Include="OpenTibia.Controls\SpriteListBox.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="OpenTibia.Core\IStorage.cs" />
     <Compile Include="OpenTibia.Core\Version.cs" />
     <Compile Include="OpenTibia.Geom\Direction.cs" />
     <Compile Include="OpenTibia.Geom\Position.cs" />

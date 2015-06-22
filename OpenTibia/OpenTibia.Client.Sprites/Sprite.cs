@@ -56,10 +56,14 @@ namespace OpenTibia.Client.Sprites
             this.Transparent = transparent;
         }
 
-        public Sprite()
+        public Sprite(uint id) : this(id, false)
         {
-            this.ID = 0;
-            this.Transparent = false;
+            ////
+        }
+
+        public Sprite() : this(0, false)
+        {
+           ////
         }
 
         #endregion
