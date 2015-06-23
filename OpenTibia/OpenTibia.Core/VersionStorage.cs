@@ -23,7 +23,6 @@
 #endregion
 
 #region Using Statements
-using OpenTibia.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -82,9 +81,9 @@ namespace OpenTibia.Core
 
         public bool Load(string path)
         {
-            if (string.IsNullOrEmpty(path))
+            if (path == null)
             {
-                throw new ArgumentNullOrEmptyException("path");
+                throw new ArgumentNullException("path");
             }
 
             if (!File.Exists(path))

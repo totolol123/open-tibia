@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="OpenTibia.Client.Sprites\Sprite.cs" />
+    <Compile Include="OpenTibia.Client.Sprites\SpriteListChangedArgs.cs" />
     <Compile Include="OpenTibia.Client.Sprites\SpriteSheet.cs" />
     <Compile Include="OpenTibia.Client.Sprites\SpriteStorage.cs" />
     <Compile Include="OpenTibia.Client.Things\DatFormat.cs" />
@@ -52,6 +53,8 @@
     </Compile>
     <Compile Include="OpenTibia.Core\IStorage.cs" />
     <Compile Include="OpenTibia.Core\Version.cs" />
+    <Compile Include="OpenTibia.Core\VersionListChangedArgs.cs" />
+    <Compile Include="OpenTibia.Core\VersionStorage.cs" />
     <Compile Include="OpenTibia.Geom\Direction.cs" />
     <Compile Include="OpenTibia.Geom\Position.cs" />
     <Compile Include="OpenTibia.Geom\Rect.cs" />
