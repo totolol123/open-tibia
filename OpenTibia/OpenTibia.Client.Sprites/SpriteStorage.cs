@@ -35,27 +35,6 @@ using System.Threading;
 
 namespace OpenTibia.Client.Sprites
 {
-    public class SpriteListChangedArgs
-    {
-        #region Constructor
-        
-        public SpriteListChangedArgs(Sprite[] changedSprites, StorageChangeType changeType)
-        {
-            this.ChangedSprites = changedSprites;
-            this.ChangeType = changeType;
-        }
-
-        #endregion
-
-        #region Public Properties
-
-        public Sprite[] ChangedSprites { get; private set; }
-
-        public StorageChangeType ChangeType { get; private set; }
-
-        #endregion
-    }
-
     public delegate void SpriteListChangedHandler(object sender, SpriteListChangedArgs e);
 
     public delegate void ProgressHandler(object sender, int percentage);
@@ -245,7 +224,7 @@ namespace OpenTibia.Client.Sprites
 
         public bool AddSprite(Sprite sprite)
         {
-            if (sprite == null)
+            if (!this.Loaded || sprite == null)
             {
                 return false;
             }
@@ -268,7 +247,7 @@ namespace OpenTibia.Client.Sprites
 
         public bool AddSprite(Bitmap bitmap)
         {
-            if (bitmap == null || bitmap.Width != Sprite.DefaultSize || bitmap.Height != Sprite.DefaultSize)
+            if (!this.Loaded || bitmap == null || bitmap.Width != Sprite.DefaultSize || bitmap.Height != Sprite.DefaultSize)
             {
                 return false;
             }
@@ -289,7 +268,7 @@ namespace OpenTibia.Client.Sprites
 
         public bool AddSprites(Sprite[] sprites)
         {
-            if (sprites == null || sprites.Length == 0)
+            if (!this.Loaded || sprites == null || sprites.Length == 0)
             {
                 return false;
             }
@@ -327,7 +306,7 @@ namespace OpenTibia.Client.Sprites
 
         public bool AddSprites(Bitmap[] sprites)
         {
-            if (sprites == null || sprites.Length == 0)
+            if (!this.Loaded || sprites == null || sprites.Length == 0)
             {
                 return false;
             }
@@ -364,7 +343,7 @@ namespace OpenTibia.Client.Sprites
 
         public bool ReplaceSprite(Sprite newSprite, uint replaceId)
         {
-            if (newSprite == null || replaceId == 0 || replaceId > this.Count)
+            if (!this.Loaded || newSprite == null || replaceId == 0 || replaceId > this.Count)
             {
                 return false;
             }
@@ -397,7 +376,7 @@ namespace OpenTibia.Client.Sprites
 
         public bool ReplaceSprite(Sprite newSprite)
         {
-            if (newSprite != null)
+            if (!this.Loaded || newSprite != null)
             {
                 return this.ReplaceSprite(newSprite, newSprite.ID);
             }
@@ -407,7 +386,7 @@ namespace OpenTibia.Client.Sprites
 
         public bool ReplaceSprite(Bitmap newBitmap, uint replaceId)
         {
-            if (newBitmap == null || newBitmap.Width != Sprite.DefaultSize || newBitmap.Height != Sprite.DefaultSize || replaceId == 0 || replaceId > this.Count)
+            if (!this.Loaded || newBitmap == null || newBitmap.Width != Sprite.DefaultSize || newBitmap.Height != Sprite.DefaultSize || replaceId == 0 || replaceId > this.Count)
             {
                 return false;
             }
@@ -438,7 +417,7 @@ namespace OpenTibia.Client.Sprites
 
         public bool ReplaceSprites(Sprite[] newSprites)
         {
-            if (newSprites == null || newSprites.Length == 0)
+            if (!this.Loaded || newSprites == null || newSprites.Length == 0)
             {
                 return false;
             }
@@ -488,7 +467,7 @@ namespace OpenTibia.Client.Sprites
 
         public bool RemoveSprite(uint id)
         {
-            if (id == 0 || id > this.Count)
+            if (!this.Loaded || id == 0 || id > this.Count)
             {
                 return false;
             }
@@ -528,7 +507,7 @@ namespace OpenTibia.Client.Sprites
 
         public bool RemoveSprites(uint[] ids)
         {
-            if (ids == null || ids.Length == 0)
+            if (!this.Loaded || ids == null || ids.Length == 0)
             {
                 return false;
             }
@@ -626,6 +605,16 @@ namespace OpenTibia.Client.Sprites
             return null;
         }
 
+        public Bitmap GetSpriteBitmap(int id)
+        {
+            if (id >= 0 && id <= this.Count)
+            {
+                return this.ReadSprite((uint)id).GetBitmap();
+            }
+
+            return null;
+        }
+
         public bool Save()
         {
             if (!this.IsTemporary && this.Changed)
@@ -690,31 +679,33 @@ namespace OpenTibia.Client.Sprites
 
         public bool Unload()
         {
-            if (this.Loaded)
+            if (!this.Loaded)
             {
-                if (this.stream != null)
-                {
-                    this.stream.Dispose();
-                    this.stream = null;
-                    this.reader = null;
-                }
+                return false;
+            }
 
-                this.FilePath = null;
-                this.sprites.Clear();
-                this.rawSpriteCount = 0;
-                this.Count = 0;
-                this.Extended = false;
-                this.Transparency = false;
-                this.Changed = false;
-                this.Loaded = false;
-                this.Compiling = false;
-                this.newPath = null;
-                this.tmpPath = null;
+            if (this.stream != null)
+            {
+                this.stream.Dispose();
+                this.stream = null;
+                this.reader = null;
+            }
 
-                if (this.StorageUnloaded != null)
-                {
-                    this.StorageUnloaded(this, new EventArgs());
-                }
+            this.FilePath = null;
+            this.sprites.Clear();
+            this.rawSpriteCount = 0;
+            this.Count = 0;
+            this.Extended = false;
+            this.Transparency = false;
+            this.Changed = false;
+            this.Loaded = false;
+            this.Compiling = false;
+            this.newPath = null;
+            this.tmpPath = null;
+
+            if (this.StorageUnloaded != null)
+            {
+                this.StorageUnloaded(this, new EventArgs());
             }
             
             return true;

@@ -28,54 +28,23 @@ using System;
 
 namespace OpenTibia.Core
 {
-    public class Version
+    public class VersionListChangedArgs
     {
         #region Constructor
 
-        public Version(ushort value, string description, uint datSignature, uint sprSignature, uint otbValue)
+        public VersionListChangedArgs(OpenTibia.Core.Version changedVersion, StorageChangeType changeType)
         {
-            this.Value = value;
-            this.Description = string.IsNullOrEmpty(description) ? string.Format("Client {0}.{1}", value / 100, value % 100) : description;
-            this.DatSignature = datSignature;
-            this.SprSignature = sprSignature;
-            this.OtbValue = otbValue;
-        }
-
-        public Version(ushort value, uint datSignature, uint sprSignature, uint otbValue) : this(value, null, datSignature, sprSignature, otbValue)
-        {
-            ////
+            this.ChangedVersion = changedVersion;
+            this.ChangeType = changeType;
         }
 
         #endregion
 
         #region Public Properties
 
-        public ushort Value { get; private set; }
+        public OpenTibia.Core.Version ChangedVersion { get; private set; }
 
-        public string Description { get; private set; }
-
-        public uint DatSignature { get; private set; }
-
-        public uint SprSignature { get; private set; }
-
-        public uint OtbValue { get; private set; }
-
-        public bool IsValid
-        {
-            get
-            {
-                return this.Value != 0 && !string.IsNullOrEmpty(this.Description) && this.DatSignature != 0 && this.SprSignature != 0 && this.OtbValue != 0;
-            }
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public override string ToString()
-        {
-            return this.Description;
-        }
+        public StorageChangeType ChangeType { get; private set; }
 
         #endregion
     }
