@@ -367,7 +367,7 @@ namespace OpenTibia.Core
                         writer.WriteAttributeString("description", version.Description);
                         writer.WriteAttributeString("dat", string.Format("{0:X}", version.DatSignature));
                         writer.WriteAttributeString("spr", string.Format("{0:X}", version.SprSignature));
-                        writer.WriteAttributeString("otb", version.Value.ToString());
+                        writer.WriteAttributeString("otb", version.OtbValue.ToString());
                         writer.WriteEndElement();
                     }
 

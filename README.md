@@ -1,5 +1,44 @@
 ### Open Tibia Framework
 
+---
+
+#### Loading versions from a xml file
+
+XML format sample
+``` XML
+<versions>
+    <version value="1079" description="Client 10.79" dat="3A71" spr="557A5E34" otb="56" />
+</versions>
+```
+
+``` C#
+// path to the versions xml file.
+string path = @"versions.xml";
+
+// creates a VersionStorage instance.
+OpenTibia.Core.VersionStorage versions = new OpenTibia.Core.VersionStorage();
+
+// loads the xml
+versions.Load(path);
+
+// gets a version from the storage by the signatures.
+OpenTibia.Core.Version version = versions.GetBySignatures(0x3A71, 0x557A5E34);
+
+// gets all versions 10.79
+System.Collections.Generic.List<OpenTibia.Core.Version> result = versions.GetByVersionValue(1079);
+
+// adds a new version.
+versions.AddVersion(new OpenTibia.Core.Version(1078, "Client 10.78", 0x39CC, 0x554C7373, 56));
+
+// replaces a version by the signatures.
+versions.ReplaceVersion(new OpenTibia.Core.Version(1078, "My description 10.78", 0x39CC, 0x554C7373, 56), 0x39CC, 0x554C7373);
+
+// removes a version by the signatures.
+versions.RemoveVersion(0x39CC, 0x554C7373);
+
+// saves the xml.
+versions.Save();
+```
 
 ---
 
