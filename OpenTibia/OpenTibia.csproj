@@ -48,6 +48,13 @@
     <Compile Include="OpenTibia.Client.Sprites\SpriteStorage.cs" />
     <Compile Include="OpenTibia.Client.Things\DatFormat.cs" />
     <Compile Include="OpenTibia.Client\ClientFeature.cs" />
+    <Compile Include="OpenTibia.Controls\ColorChangedArgs.cs" />
+    <Compile Include="OpenTibia.Controls\EightBitColorGrid.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="OpenTibia.Controls\HsiColorGrid.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="OpenTibia.Controls\SpriteListBox.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -58,6 +65,7 @@
     <Compile Include="OpenTibia.Geom\Direction.cs" />
     <Compile Include="OpenTibia.Geom\Position.cs" />
     <Compile Include="OpenTibia.Geom\Rect.cs" />
+    <Compile Include="OpenTibia.Utils\ColorUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />

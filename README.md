@@ -10,7 +10,7 @@ XML format sample
     <version value="1079" description="Client 10.79" dat="3A71" spr="557A5E34" otb="56" />
 </versions>
 ```
-
+Code
 ``` C#
 // path to the versions xml file.
 string path = @"versions.xml";
@@ -102,3 +102,17 @@ for (uint i = 0; i < list.Length; i++)
 
 this.spriteListBox.AddRange(list);
 ```
+
+---
+
+#### HsiColorGrid control
+
+Used for minimap and light colors
+
+![HsiColorGrid](http://s15.postimg.org/ah0eeme8b/Hsi_Color_Grid.png)
+
+#### EightBitColorGrid control
+
+Used for outfit colors
+
+![EightBitColorGrid](http://s13.postimg.org/526xlym2f/Eight_Bit_Color_Grid.png)
