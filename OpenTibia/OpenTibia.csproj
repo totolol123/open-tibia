@@ -65,6 +65,9 @@
     <Compile Include="OpenTibia.Geom\Direction.cs" />
     <Compile Include="OpenTibia.Geom\Position.cs" />
     <Compile Include="OpenTibia.Geom\Rect.cs" />
+    <Compile Include="OpenTibia.IO\BinaryTreeReader.cs" />
+    <Compile Include="OpenTibia.IO\BinaryTreeWriter.cs" />
+    <Compile Include="OpenTibia.IO\SpecialChar.cs" />
     <Compile Include="OpenTibia.Utils\ColorUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
