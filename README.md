@@ -105,14 +105,20 @@ this.spriteListBox.AddRange(list);
 
 ---
 
+#### SpriteListBox control
+
+A control to display a list of sprites.
+
+![SpriteListBox](http://s22.postimg.org/48ttg8xpd/Sprite_List_Box.png)
+
 #### HsiColorGrid control
 
-Used for minimap and light colors
+A control that displays minimap and light colors.
 
 ![HsiColorGrid](http://s15.postimg.org/ah0eeme8b/Hsi_Color_Grid.png)
 
 #### EightBitColorGrid control
 
-Used for outfit colors
+A control that displays outfit colors.
 
 ![EightBitColorGrid](http://s13.postimg.org/526xlym2f/Eight_Bit_Color_Grid.png)
