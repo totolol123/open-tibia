@@ -42,6 +42,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="OpenTibia.Animation\Animator.cs" />
+    <Compile Include="OpenTibia.Animation\FrameDuration.cs" />
+    <Compile Include="OpenTibia.Animation\FrameGroup.cs" />
     <Compile Include="OpenTibia.Client.Sprites\Sprite.cs" />
     <Compile Include="OpenTibia.Client.Sprites\SpriteListChangedArgs.cs" />
     <Compile Include="OpenTibia.Client.Sprites\SpriteSheet.cs" />
@@ -68,6 +71,7 @@
     <Compile Include="OpenTibia.IO\BinaryTreeReader.cs" />
     <Compile Include="OpenTibia.IO\BinaryTreeWriter.cs" />
     <Compile Include="OpenTibia.IO\SpecialChar.cs" />
+    <Compile Include="OpenTibia.Utils\Clock.cs" />
     <Compile Include="OpenTibia.Utils\ColorUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
