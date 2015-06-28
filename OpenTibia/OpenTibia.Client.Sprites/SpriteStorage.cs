@@ -97,7 +97,7 @@ namespace OpenTibia.Client.Sprites
 
         public string FilePath { get; private set; }
 
-        public OpenTibia.Core.Version Version { get; private set; }
+        public Core.Version Version { get; private set; }
 
         public uint Count { get; private set; }
 
@@ -123,7 +123,7 @@ namespace OpenTibia.Client.Sprites
 
         #region Public Methods
 
-        public bool Create(OpenTibia.Core.Version version, ClientFeature features)
+        public bool Create(Core.Version version, ClientFeature features)
         {
             if (this.Loaded && !this.Unload())
             {
@@ -150,12 +150,12 @@ namespace OpenTibia.Client.Sprites
             return true;
         }
 
-        public bool Create(OpenTibia.Core.Version version)
+        public bool Create(Core.Version version)
         {
             return this.Create(version, ClientFeature.None);
         }
 
-        public bool Load(string path, OpenTibia.Core.Version version, ClientFeature features)
+        public bool Load(string path, Core.Version version, ClientFeature features)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -217,7 +217,7 @@ namespace OpenTibia.Client.Sprites
             return true;
         }
 
-        public bool Load(string path, OpenTibia.Core.Version version)
+        public bool Load(string path, Core.Version version)
         {
             return this.Load(path, version, ClientFeature.None);
         }

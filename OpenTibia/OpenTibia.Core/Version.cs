@@ -23,6 +23,7 @@
 #endregion
 
 #region Using Statements
+using OpenTibia.Client.Things;
 using System;
 #endregion
 
@@ -39,6 +40,7 @@ namespace OpenTibia.Core
             this.DatSignature = datSignature;
             this.SprSignature = sprSignature;
             this.OtbValue = otbValue;
+            this.Format = VesionValueToDatFormat(value);
         }
 
         public Version(ushort value, uint datSignature, uint sprSignature, uint otbValue) : this(value, null, datSignature, sprSignature, otbValue)
@@ -60,6 +62,8 @@ namespace OpenTibia.Core
 
         public uint OtbValue { get; private set; }
 
+        public DatFormat Format { get; private set; }
+
         public bool IsValid
         {
             get
@@ -75,6 +79,57 @@ namespace OpenTibia.Core
         public override string ToString()
         {
             return this.Description;
+        }
+
+        #endregion
+
+        #region Public Static Methods
+
+        public static DatFormat VesionValueToDatFormat(ushort value)
+        {
+            if (value == 0)
+            {
+                return DatFormat.InvalidFormat;
+            }
+
+            if (value < 740)
+            {
+                return DatFormat.Format_710;
+            }
+            else if (value < 755)
+            {
+                return DatFormat.Format_740;
+            }
+            else if (value < 780)
+            {
+                return DatFormat.Format_755;
+            }
+            else if (value < 860)
+            {
+                return DatFormat.Format_780;
+            }
+            else if (value < 960)
+            {
+                return DatFormat.Format_860;
+            }
+            else if (value < 1010)
+            {
+                return DatFormat.Format_960;
+            }
+            else if (value < 1050)
+            {
+                return DatFormat.Format_1010;
+            }
+            else if (value < 1057)
+            {
+                return DatFormat.Format_1050;
+            }
+            else if (value >= 1057)
+            {
+                return DatFormat.Format_1057;
+            }
+
+            return DatFormat.InvalidFormat;
         }
 
         #endregion
