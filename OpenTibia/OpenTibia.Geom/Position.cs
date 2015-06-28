@@ -93,6 +93,30 @@ namespace OpenTibia.Geom
             return Tuple.Create(this.X, this.Y, this.Z).GetHashCode();
         }
 
+        public Position SetTo(int x, int y, int z)
+        {
+            this.X = x;
+            this.Y = y;
+            this.Z = z;
+            return this;
+        }
+
+        public Position CopyFrom(Position position)
+        {
+            this.X = position.X;
+            this.Y = position.Y;
+            this.Z = position.Z;
+            return this;
+        }
+
+        public Position CopyTo(Position position)
+        {
+            position.X = this.X;
+            position.Y = this.Y;
+            position.Z = this.Z;
+            return position;
+        }
+
         public bool IsValid()
         {
             return (this.X >= 0 && this.X <= 0xFFFF && this.Y >= 0 && this.Y <= 0xFFFF && this.Z >= 0 && this.Z <= 15);
