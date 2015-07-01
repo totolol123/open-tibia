@@ -111,14 +111,14 @@ A control to display a list of sprites.
 
 ![SpriteListBox](http://s22.postimg.org/48ttg8xpd/Sprite_List_Box.png)
 
-#### HsiColorGrid control
+#### EightBitColorGrid control
 
 A control that displays minimap and light colors.
 
-![HsiColorGrid](http://s15.postimg.org/ah0eeme8b/Hsi_Color_Grid.png)
+![EightBitColorGrid](http://s15.postimg.org/ah0eeme8b/Hsi_Color_Grid.png)
 
-#### EightBitColorGrid control
+#### HsiColorGrid control
 
 A control that displays outfit colors.
 
-![EightBitColorGrid](http://s13.postimg.org/526xlym2f/Eight_Bit_Color_Grid.png)
+![HsiColorGrid](http://s13.postimg.org/526xlym2f/Eight_Bit_Color_Grid.png)
