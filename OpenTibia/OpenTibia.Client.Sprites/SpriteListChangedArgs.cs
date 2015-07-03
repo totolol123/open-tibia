@@ -24,11 +24,12 @@
 
 #region Using Statements
 using OpenTibia.Core;
-using System;
 #endregion
 
 namespace OpenTibia.Client.Sprites
 {
+    public delegate void SpriteListChangedHandler(object sender, SpriteListChangedArgs e);
+
     public class SpriteListChangedArgs
     {
         #region Constructor

@@ -87,5 +87,29 @@ namespace OpenTibia.Animation
         }
 
         #endregion
+
+        #region Public Static Methods
+
+        public static FrameGroup Create()
+        {
+            FrameGroup group = new FrameGroup();
+            group.Width = 1;
+            group.Height = 1;
+            group.Layers = 1;
+            group.Frames = 1;
+            group.PatternX = 1;
+            group.PatternY = 1;
+            group.PatternZ = 1;
+            group.ExactSize = 32;
+            group.SpriteIDs = new uint[1];
+            group.IsAnimation = false;
+            group.AnimationMode = AnimationMode.Asynchronous;
+            group.LoopCount = 0;
+            group.StartFrame = 0;
+            group.FrameDurations = null;
+            return group;
+        }
+
+        #endregion
     }
 }

@@ -23,6 +23,7 @@
 #endregion
 
 #region Using Statements
+using OpenTibia.Utils;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -37,7 +38,6 @@ namespace OpenTibia.Utilities
 
         private Bitmap bitmap;
         private BitmapData bitmapData;
-        private byte[] pixels;
         private IntPtr address = IntPtr.Zero;
 
         #endregion
@@ -47,7 +47,23 @@ namespace OpenTibia.Utilities
         public BitmapLocker(Bitmap bitmap)
         {
             this.bitmap = bitmap;
+            this.Width = bitmap.Width;
+            this.Height = bitmap.Height;
+            this.Length = bitmap.Width * bitmap.Height * 4;
+            this.Pixels = new byte[this.Length];
         }
+
+        #endregion
+
+        #region Public Properties
+
+        public byte[] Pixels { get; private set; }
+
+        public int Width { get; private set; }
+
+        public int Height { get; private set; }
+
+        public int Length { get; private set; }
 
         #endregion
 
@@ -61,32 +77,120 @@ namespace OpenTibia.Utilities
             // lock bitmap and return bitmap data
             this.bitmapData = this.bitmap.LockBits(rect, ImageLockMode.ReadWrite, this.bitmap.PixelFormat);
 
-            // create byte array to copy pixel values
-            this.pixels = new byte[this.bitmap.Width * this.bitmap.Height * 4];
+            // gets the address of the first pixel data in the bitmap
             this.address = this.bitmapData.Scan0;
 
             // copy data from pointer to array
-            Marshal.Copy(this.address, this.pixels, 0, this.pixels.Length);
+            Marshal.Copy(this.address, this.Pixels, 0, this.Length);
         }
 
-        public void CopyPixels(Bitmap source, int x, int y)
+        public void CopyPixels(Bitmap source, int px, int py)
         {
-            for (int py = 0; py < source.Height; py++)
+            int width = source.Width;
+            int height = source.Height;
+            int maxIndex = this.Length - 4;
+
+            for (int y = 0; y < height; y++)
             {
-                for (int px = 0; px < source.Width; px++)
+                int row = ((py + y) * this.Width);
+
+                for (int x = 0; x < width; x++)
                 {
-                    this.SetPixel(px + x, py + y, source.GetPixel(px, py));
+                    Color color = source.GetPixel(x, y);
+                    if (color.A != 0)
+                    {
+                        int i = (row + (px + x)) * 4;
+                        if (i > maxIndex)
+                        {
+                            continue;
+                        }
+
+                        this.Pixels[i] = color.B;
+                        this.Pixels[i + 1] = color.G;
+                        this.Pixels[i + 2] = color.R;
+                        this.Pixels[i + 3] = color.A;
+                    }
                 }
             }
         }
 
         public void CopyPixels(Bitmap source, int rx, int ry, int rw, int rh, int px, int py)
         {
+            int maxIndex = this.Length - 4;
+
             for (int y = 0; y < rh; y++)
             {
+                int row = ((py + y) * this.Width);
+
                 for (int x = 0; x < rw; x++)
                 {
-                    this.SetPixel(px + x, py + y, source.GetPixel(rx + x, ry + y));
+                    Color color = source.GetPixel(rx + x, ry + y);
+                    if (color.A != 0)
+                    {
+                        int i = (row + (px + x)) * 4;
+                        if (i > maxIndex)
+                        {
+                            continue;
+                        }
+
+                        this.Pixels[i] = color.B;
+                        this.Pixels[i + 1] = color.G;
+                        this.Pixels[i + 2] = color.R;
+                        this.Pixels[i + 3] = color.A;
+                    }
+                }
+            }
+        }
+
+        public void ColorizePixels(byte[] grayPixels, byte[] blendPixels, byte yellowChannel, byte redChannel, byte greenChannel, byte blueChannel)
+        {
+            Color rgb = Color.Transparent;
+
+            for (int y = 0; y < this.Height; y++)
+            {
+                int row = (y * this.Width);
+
+                for (int x = 0; x < this.Width; x++)
+                {
+                    int bi = (row + x) * 4; // blue index
+                    int gi = bi + 1;        // green index
+                    int ri = bi + 2;        // red index
+                    int ai = bi + 3;        // alpha index
+
+                    if (grayPixels[ai] == 0 || blendPixels[ai] == 0)
+                    {
+                        this.Pixels[bi] = grayPixels[bi]; // blue
+                        this.Pixels[gi] = grayPixels[gi]; // green
+                        this.Pixels[ri] = grayPixels[ri]; // red
+                        this.Pixels[ai] = grayPixels[ai]; // alpha
+                        continue;
+                    }
+
+                    byte blendBlue = blendPixels[bi];
+                    byte blendGreen = blendPixels[gi];
+                    byte blendRed = blendPixels[ri];
+
+                    if (blendRed != 0 && blendGreen != 0 && blendBlue == 0)
+                    {
+                        rgb = ColorUtils.HsiToRgb(yellowChannel);
+                    }
+                    else if (blendRed != 0 && blendGreen == 0 && blendBlue == 0)
+                    {
+                        rgb = ColorUtils.HsiToRgb(redChannel);
+                    }
+                    else if (blendRed == 0 && blendGreen != 0 && blendBlue == 0)
+                    {
+                        rgb = ColorUtils.HsiToRgb(greenChannel);
+                    }
+                    else if (blendRed == 0 && blendGreen == 0 && blendBlue != 0)
+                    {
+                        rgb = ColorUtils.HsiToRgb(blueChannel);
+                    }
+
+                    this.Pixels[bi] = (byte)(grayPixels[bi] * (rgb.B / 255f));
+                    this.Pixels[gi] = (byte)(grayPixels[gi] * (rgb.G / 255f));
+                    this.Pixels[ri] = (byte)(grayPixels[ri] * (rgb.R / 255f));
+                    this.Pixels[ai] = grayPixels[ai];
                 }
             }
         }
@@ -94,7 +198,7 @@ namespace OpenTibia.Utilities
         public void UnlockBits()
         {
             // copy data from byte array to pointer
-            Marshal.Copy(this.pixels, 0, this.address, this.pixels.Length);
+            Marshal.Copy(this.Pixels, 0, this.address, this.Length);
 
             // unlock bitmap data
             this.bitmap.UnlockBits(this.bitmapData);
@@ -102,29 +206,12 @@ namespace OpenTibia.Utilities
 
         public void Dispose()
         {
-            bitmap = null;
-            bitmapData = null;
-            pixels = null;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private void SetPixel(int x, int y, Color color)
-        {
-            // get start index of the specified pixel
-            int i = ((y * this.bitmap.Width) + x) * 4;
-
-            if (i > this.pixels.Length - 4)
-            {
-                return;
-            }
-
-            this.pixels[i] = color.B;
-            this.pixels[i + 1] = color.G;
-            this.pixels[i + 2] = color.R;
-            this.pixels[i + 3] = color.A;
+            this.bitmap = null;
+            this.bitmapData = null;
+            this.Pixels = null;
+            this.Width = 0;
+            this.Height = 0;
+            this.Length = 0;
         }
 
         #endregion

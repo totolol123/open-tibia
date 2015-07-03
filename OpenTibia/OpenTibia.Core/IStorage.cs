@@ -40,4 +40,6 @@ namespace OpenTibia.Core
         bool Changed { get; }
         bool Loaded { get; }
     }
+
+    public delegate void ProgressHandler(object sender, int percentage);
 }
