@@ -45,11 +45,11 @@
     <Compile Include="OpenTibia.Animation\Animator.cs" />
     <Compile Include="OpenTibia.Animation\FrameDuration.cs" />
     <Compile Include="OpenTibia.Animation\FrameGroup.cs" />
-    <Compile Include="OpenTibia.Client.Sprites\Sprite.cs" />
-    <Compile Include="OpenTibia.Client.Sprites\SpriteListChangedArgs.cs" />
-    <Compile Include="OpenTibia.Client.Sprites\SpriteSheet.cs" />
-    <Compile Include="OpenTibia.Client.Sprites\SpriteStorage.cs" />
-    <Compile Include="OpenTibia.Client.Things\DatFormat.cs" />
+    <Compile Include="OpenTibia.Client\Sprites\Sprite.cs" />
+    <Compile Include="OpenTibia.Client\Sprites\SpriteListChangedArgs.cs" />
+    <Compile Include="OpenTibia.Client\Sprites\SpriteSheet.cs" />
+    <Compile Include="OpenTibia.Client\Sprites\SpriteStorage.cs" />
+    <Compile Include="OpenTibia.Client\Things\DatFormat.cs" />
     <Compile Include="OpenTibia.Client\ClientFeature.cs" />
     <Compile Include="OpenTibia.Collections\SpriteGroups.cs" />
     <Compile Include="OpenTibia.Controls\ColorChangedArgs.cs" />
