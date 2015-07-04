@@ -23,6 +23,7 @@
 #endregion
 
 #region Using Statements
+using OpenTibia.Client.Things;
 using System;
 #endregion
 
@@ -93,6 +94,11 @@ namespace OpenTibia.Animation
         public FrameDuration CopyTo(FrameDuration fd)
         {
             return fd.SetTo(this.Minimum, this.Maximum);
+        }
+
+        public FrameDuration Clone()
+        {
+            return new FrameDuration(this.Minimum, this.Maximum);
         }
 
         #endregion

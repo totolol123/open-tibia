@@ -22,11 +22,6 @@
 */
 #endregion
 
-#region Using Statements
-using System;
-using System.Collections.Generic;
-#endregion
-
 namespace OpenTibia.Animation
 {
     public enum FrameGroupType : byte
@@ -84,6 +79,36 @@ namespace OpenTibia.Animation
         public int GetTextureIndex(int layer, int patternX, int patternY, int patternZ, int frame)
         {
             return (((frame % this.Frames * this.PatternZ + patternZ) * this.PatternY + patternY) * this.PatternX + patternX) * this.Layers + layer;
+        }
+
+        public FrameGroup Clone()
+        {
+            FrameGroup group = new FrameGroup();
+            group.Width = this.Width;
+            group.Height = this.Height;
+            group.Layers = this.Layers;
+            group.Frames = this.Frames;
+            group.PatternX = this.PatternX;
+            group.PatternY = this.PatternY;
+            group.PatternZ = this.PatternZ;
+            group.ExactSize = this.ExactSize;
+            group.SpriteIDs = (uint[])this.SpriteIDs.Clone();
+            group.AnimationMode = this.AnimationMode;
+            group.LoopCount = this.LoopCount;
+            group.StartFrame = this.StartFrame;
+
+            if (this.Frames > 1)
+            {
+                group.IsAnimation = true;
+                group.FrameDurations = new FrameDuration[this.Frames];
+
+                for (int i = 0; i < this.Frames; i++)
+                {
+                    group.FrameDurations[i] = this.FrameDurations[i].Clone();
+                }
+            }
+
+            return group;
         }
 
         #endregion

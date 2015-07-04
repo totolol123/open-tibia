@@ -70,6 +70,19 @@ namespace OpenTibia.Controls
             Items.AddRange(sprites);
         }
 
+        public void RemoveSelectedSprites()
+        {
+            if (this.SelectedIndex != -1)
+            {
+                SelectedObjectCollection selectedItems = this.SelectedItems;
+
+                for (int i = selectedItems.Count - 1; i >= 0; i--)
+                {
+                    this.Items.Remove(selectedItems[i]);
+                }
+            }
+        }
+
         public void Clear()
         {
             Items.Clear();

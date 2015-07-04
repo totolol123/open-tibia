@@ -59,7 +59,7 @@ namespace OpenTibia.Core
 
         #region Public Properties
 
-        public List<OpenTibia.Core.Version> Versions { get; private set; }
+        public List<Version> Versions { get; private set; }
 
         public string FilePath { get; private set; }
 
@@ -121,14 +121,14 @@ namespace OpenTibia.Core
 
                 for (int i = 0; i < this.Versions.Count; i++)
                 {
-                    OpenTibia.Core.Version version = this.Versions[i];
+                    Version version = this.Versions[i];
                     if (version.DatSignature == datSignature && version.SprSignature == sprSignature)
                     {
                         throw new Exception("Duplicated signatures.");
                     }
                 }
 
-                this.Versions.Add(new OpenTibia.Core.Version(value, description, datSignature, sprSignature, otbValue));
+                this.Versions.Add(new Version(value, description, datSignature, sprSignature, otbValue));
             }
 
             this.FilePath = path;
@@ -143,7 +143,7 @@ namespace OpenTibia.Core
             return true;
         }
 
-        public bool AddVersion(OpenTibia.Core.Version version)
+        public bool AddVersion(Version version)
         {
             if (!this.Loaded || version == null || !version.IsValid || this.GetBySignatures(version.DatSignature, version.SprSignature) != null)
             {
@@ -161,14 +161,14 @@ namespace OpenTibia.Core
             return true;
         }
 
-        public bool ReplaceVersion(OpenTibia.Core.Version newVersion, uint oldDatSignature, uint oldSprSignature)
+        public bool ReplaceVersion(Version newVersion, uint oldDatSignature, uint oldSprSignature)
         {
             if (!this.Loaded || newVersion == null || !newVersion.IsValid || oldDatSignature == 0 || oldSprSignature == 0)
             {
                 return false;
             }
 
-            OpenTibia.Core.Version oldVersion = this.GetBySignatures(oldDatSignature, oldSprSignature);
+            Version oldVersion = this.GetBySignatures(oldDatSignature, oldSprSignature);
             if (oldVersion == null)
             {
                 return false;
@@ -186,14 +186,14 @@ namespace OpenTibia.Core
             return true;
         }
 
-        public bool ReplaceVersion(OpenTibia.Core.Version newVersion)
+        public bool ReplaceVersion(Version newVersion)
         {
             if (!this.Loaded || newVersion == null || !newVersion.IsValid)
             {
                 return false;
             }
 
-            OpenTibia.Core.Version oldVersion = this.GetBySignatures(newVersion.DatSignature, newVersion.SprSignature);
+            Version oldVersion = this.GetBySignatures(newVersion.DatSignature, newVersion.SprSignature);
             if (oldVersion == null)
             {
                 return false;
@@ -218,7 +218,7 @@ namespace OpenTibia.Core
                 return false;
             }
 
-            OpenTibia.Core.Version version = this.GetBySignatures(datSignature, sprSignature);
+            Version version = this.GetBySignatures(datSignature, sprSignature);
             if (version == null)
             {
                 return false;
@@ -235,13 +235,13 @@ namespace OpenTibia.Core
             return true;
         }
 
-        public OpenTibia.Core.Version GetBySignatures(uint dat, uint spr)
+        public Version GetBySignatures(uint dat, uint spr)
         {
             if (dat != 0 && spr != 0)
             {
                 for (int i = 0; i < this.Versions.Count; i++)
                 {
-                    OpenTibia.Core.Version version = this.Versions[i];
+                    Version version = this.Versions[i];
                     if (version.DatSignature == dat && version.SprSignature == spr)
                     {
                         return version;
@@ -252,7 +252,7 @@ namespace OpenTibia.Core
             return null;
         }
 
-        public OpenTibia.Core.Version GetBySignatures(int dat, int spr)
+        public Version GetBySignatures(int dat, int spr)
         {
             if (dat > 0 && spr > 0)
             {
@@ -262,15 +262,15 @@ namespace OpenTibia.Core
             return null;
         }
 
-        public List<OpenTibia.Core.Version> GetByVersionValue(uint value)
+        public List<Version> GetByVersionValue(uint value)
         {
-            List<OpenTibia.Core.Version> found = new List<OpenTibia.Core.Version>();
+            List<Version> found = new List<Version>();
 
             if (value != 0)
             {
                 for (int i = 0; i < this.Versions.Count; i++)
                 {
-                    OpenTibia.Core.Version version = this.Versions[i];
+                    Version version = this.Versions[i];
                     if (version.Value == value)
                     {
                         found.Add(version);
@@ -281,7 +281,7 @@ namespace OpenTibia.Core
             return found;
         }
 
-        public List<OpenTibia.Core.Version> GetByVersionValue(int value)
+        public List<Version> GetByVersionValue(int value)
         {
             if (value > 0)
             {
@@ -291,15 +291,15 @@ namespace OpenTibia.Core
             return null;
         }
 
-        public List<OpenTibia.Core.Version> GetByOtbValue(uint otb)
+        public List<Version> GetByOtbValue(uint otb)
         {
-            List<OpenTibia.Core.Version> found = new List<OpenTibia.Core.Version>();
+            List<Version> found = new List<Version>();
 
             if (otb != 0)
             {
                 for (int i = 0; i < this.Versions.Count; i++)
                 {
-                    OpenTibia.Core.Version version = this.Versions[i];
+                    Version version = this.Versions[i];
                     if (version.OtbValue == otb)
                     {
                         found.Add(version);
@@ -310,7 +310,7 @@ namespace OpenTibia.Core
             return found;
         }
 
-        public List<OpenTibia.Core.Version> GetByOtbValue(int otb)
+        public List<Version> GetByOtbValue(int otb)
         {
             if (otb > 0)
             {
@@ -318,6 +318,11 @@ namespace OpenTibia.Core
             }
            
             return null;
+        }
+
+        public Version[] GetAllVersions()
+        {
+            return this.Versions.ToArray();
         }
 
         public bool Save()
@@ -360,7 +365,7 @@ namespace OpenTibia.Core
                     writer.WriteStartDocument();
                     writer.WriteStartElement("versions");
 
-                    foreach (OpenTibia.Core.Version version in this.Versions)
+                    foreach (Version version in this.Versions)
                     {
                         writer.WriteStartElement("version");
                         writer.WriteAttributeString("value", version.Value.ToString());
