@@ -31,13 +31,13 @@ namespace OpenTibia.Animation
 {
     public class FrameDuration
     {
-        #region Private Properties
+        #region | Private Properties |
 
         private static readonly Random Random = new Random();
 
         #endregion
 
-        #region Constructor
+        #region | Constructor |
 
         public FrameDuration(int minimum, int maximum)
         {
@@ -49,9 +49,29 @@ namespace OpenTibia.Animation
             this.SetTo((int)minimum, (int)maximum);
         }
 
+        public FrameDuration(ThingCategory category)
+        {
+            switch (category)
+            {
+                case ThingCategory.Item:
+                    this.SetTo(500, 500);
+                    break;
+
+                case ThingCategory.Outfit:
+                    this.SetTo(300, 300);
+                    break;
+
+                case ThingCategory.Effect:
+                    this.SetTo(100, 100);
+                    break;
+            }
+
+            this.SetTo(0, 0);
+        }
+
         #endregion
 
-        #region Public Properties
+        #region | Public Properties |
 
         public int Minimum { get; private set; }
 
@@ -72,7 +92,7 @@ namespace OpenTibia.Animation
 
         #endregion
 
-        #region Public Methods
+        #region | Public Methods |
 
         public FrameDuration SetTo(int minimum, int maximum)
         {
