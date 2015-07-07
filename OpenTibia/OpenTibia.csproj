@@ -105,6 +105,7 @@
     <Compile Include="OpenTibia.Utils\ColorUtils.cs" />
     <Compile Include="OpenTibia.Utils\LZMACoder.cs" />
     <Compile Include="OpenTibia.Utils\OutfitData.cs" />
+    <Compile Include="OpenTibia.Utils\PathUtils.cs" />
     <Compile Include="OpenTibia.Utils\SpriteCache.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
