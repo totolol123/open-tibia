@@ -51,11 +51,8 @@ OpenTibia.Core.Version version = new OpenTibia.Core.Version(1079, "Client 10.79"
 // the path to the spr file.
 string path = @"C:\Clients\10.79\Tibia.spr";
 
-// creates a SpriteStorage instance.
-OpenTibia.Client.Sprites.SpriteStorage sprites = new OpenTibia.Client.Sprites.SpriteStorage();
-
 // loads the spr file.
-sprites.Load(path, version);
+OpenTibia.Client.Sprites.SpriteStorage sprites = OpenTibia.Client.Sprites.SpriteStorage.Load(path, version);
 
 // gets a sprite from the storage
 OpenTibia.Client.Sprites.Sprite sprite = sprites.GetSprite(100);
@@ -86,11 +83,8 @@ OpenTibia.Core.Version version = new OpenTibia.Core.Version(1079, "Client 10.79"
 // the path to the spr file.
 string path = @"C:\Clients\10.79\Tibia.spr";
 
-// creates a SpriteStorage instance.
-OpenTibia.Client.Sprites.SpriteStorage sprites = new OpenTibia.Client.Sprites.SpriteStorage();
-
 // loads the spr file.
-sprites.Load(path, version);
+OpenTibia.Client.Sprites.SpriteStorage sprites = OpenTibia.Client.Sprites.SpriteStorage.Load(path, version);
 
 // gets 100 sprites from the storage and displays in the SpriteListBox
 OpenTibia.Client.Sprites.Sprite[] list = new OpenTibia.Client.Sprites.Sprite[100];

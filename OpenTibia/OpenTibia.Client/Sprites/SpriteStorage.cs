@@ -35,16 +35,24 @@ using System.Threading;
 
 namespace OpenTibia.Client.Sprites
 {
-    public class SpriteStorage : IStorage
+    public class SpriteStorage : IStorage, IDisposable
     {
-        #region Constants
+        private struct CompilationData
+        {
+            public string Path;
+            public string TmpPath;
+            public Core.Version Version;
+            public ClientFeatures Features;
+        }
+
+        #region | Constants |
 
         private const byte HeaderU16 = 6;
         private const byte HeaderU32 = 8;
 
         #endregion
 
-        #region Private Properties
+        #region | Private Properties |
 
         private FileStream stream;
         private BinaryReader reader;
@@ -52,15 +60,15 @@ namespace OpenTibia.Client.Sprites
         private uint rawSpriteCount;
         private byte headSize;
         private Sprite blankSprite;
+        private bool transparency;
         private BackgroundWorker worker;
-        private string newPath;
-        private string tmpPath;
+        private CompilationData compilationData;
 
         #endregion
 
-        #region Constructor
-        
-        public SpriteStorage()
+        #region | Constructor |
+
+        private SpriteStorage()
         {
             this.sprites = new Dictionary<uint, Sprite>();
             this.worker = new BackgroundWorker();
@@ -73,9 +81,7 @@ namespace OpenTibia.Client.Sprites
 
         #endregion
 
-        #region Events
-
-        public event EventHandler StorageLoaded;
+        #region | Events |
 
         public event SpriteListChangedHandler StorageChanged;
 
@@ -83,13 +89,13 @@ namespace OpenTibia.Client.Sprites
 
         public event EventHandler StorageCompilationCanceled;
 
-        public event EventHandler StorageUnloaded;
+        public event EventHandler StorageDisposed;
 
         public event ProgressHandler ProgressChanged;
 
         #endregion
 
-        #region Public Properties
+        #region | Public Properties |
 
         public string FilePath { get; private set; }
 
@@ -97,9 +103,7 @@ namespace OpenTibia.Client.Sprites
 
         public uint Count { get; private set; }
 
-        public bool ExtendedEnabled { get; private set; }
-
-        public bool TransparencyEnabled { get; private set; }
+        public ClientFeatures ClientFeatures { get; private set; }
 
         public bool IsTemporary
         {
@@ -109,118 +113,44 @@ namespace OpenTibia.Client.Sprites
             }
         }
 
+        public bool IsFull
+        {
+            get
+            {
+                if ((this.ClientFeatures & ClientFeatures.Extended) == ClientFeatures.Extended)
+                {
+                    return false;
+                }
+
+                return this.Count >= 0xFFFF;
+            }
+        }
+
         public bool Changed { get; private set; }
 
         public bool Loaded { get; private set; }
 
         public bool Compiling { get; private set; }
 
+        public bool Disposed { get; private set; }
+
         #endregion
 
-        #region Public Methods
-
-        public bool Create(Core.Version version, ClientFeature features)
-        {
-            if (this.Compiling || (this.Loaded && !this.Unload()))
-            {
-                return false;
-            }
-
-            this.Version = version;
-            this.ExtendedEnabled = (features & ClientFeature.Extended) == ClientFeature.Extended || version.Value >= (ushort)DatFormat.Format_960;
-            this.TransparencyEnabled = (features & ClientFeature.Transparency) == ClientFeature.Transparency;
-            this.headSize = this.ExtendedEnabled ? HeaderU32 : HeaderU16;
-            this.blankSprite = new Sprite(0, this.TransparencyEnabled);
-            this.sprites.Add(1, new Sprite(1, this.TransparencyEnabled));
-            this.rawSpriteCount = 0;
-            this.Count = 1;
-            this.Changed = false;
-            this.Loaded = true;
-            this.Compiling = false;
-
-            if (this.StorageLoaded != null)
-            {
-                this.StorageLoaded(this, new EventArgs());
-            }
-
-            return true;
-        }
-
-        public bool Create(Core.Version version)
-        {
-            return this.Create(version, ClientFeature.None);
-        }
-
-        public bool Load(string path, Core.Version version, ClientFeature features)
-        {
-            if (string.IsNullOrEmpty(path))
-            {
-                throw new ArgumentNullException("path");
-            }
-
-            if (version == null)
-            {
-                throw new ArgumentNullException("version");
-            }
-
-            if (!File.Exists(path))
-            {
-                string message = "File not found: {0}"; // TODO: ResourceManager.GetString("Exception.FileNotFound");
-                throw new FileNotFoundException(string.Format(message, path), "path");
-            }
-
-            if (this.Compiling || (this.Loaded && !this.Unload()))
-            {
-                return false;
-            }
-
-            this.stream = new FileStream(path, FileMode.Open);
-            this.reader = new BinaryReader(this.stream);
-
-            uint signature = this.reader.ReadUInt32();
-            if (signature != version.SprSignature)
-            {
-                string message = "Invalid SPR signature. Expected signature is {0:X} and loaded signature is {1:X}.";
-                throw new Exception(string.Format(message, version.SprSignature, signature));
-            }
-
-            bool extended = (features & ClientFeature.Extended) == ClientFeature.Extended || version.Value >= (ushort)DatFormat.Format_960;
-            if (extended)
-            {
-                this.headSize = HeaderU32;
-                this.rawSpriteCount = this.reader.ReadUInt32();
-            }
-            else
-            {
-                this.headSize = HeaderU16;
-                this.rawSpriteCount = this.reader.ReadUInt16();
-            }
-            
-            this.FilePath = path;
-            this.Version = version;
-            this.ExtendedEnabled = extended;
-            this.TransparencyEnabled = (features & ClientFeature.Transparency) == ClientFeature.Transparency;
-            this.Count = this.rawSpriteCount;
-            this.blankSprite = new Sprite(0, this.TransparencyEnabled);
-            this.Changed = false;
-            this.Loaded = true;
-
-            if (this.StorageLoaded != null)
-            {
-                this.StorageLoaded(this, new EventArgs());
-            }
-
-            return true;
-        }
-
-        public bool Load(string path, Core.Version version)
-        {
-            return this.Load(path, version, ClientFeature.None);
-        }
+        #region | Public Methods |
 
         public bool AddSprite(Sprite sprite)
         {
-            if (!this.Loaded || this.Compiling || sprite == null)
+            if (sprite == null)
+            {
+                throw new ArgumentNullException("sprite");
+            }
+
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            if (!this.Loaded || this.Compiling)
             {
                 return false;
             }
@@ -228,7 +158,7 @@ namespace OpenTibia.Client.Sprites
             uint id = ++this.Count;
 
             sprite.ID = id;
-            sprite.Transparent = this.TransparencyEnabled;
+            sprite.Transparent = this.transparency;
 
             this.sprites.Add(id, sprite);
             this.Changed = true;
@@ -243,13 +173,28 @@ namespace OpenTibia.Client.Sprites
 
         public bool AddSprite(Bitmap bitmap)
         {
-            if (!this.Loaded || this.Compiling || bitmap == null || bitmap.Width != Sprite.DefaultSize || bitmap.Height != Sprite.DefaultSize)
+            if (bitmap == null)
+            {
+                throw new ArgumentNullException("bitmap");
+            }
+
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            if (!this.Loaded || this.Compiling || bitmap.Width != Sprite.DefaultSize || bitmap.Height != Sprite.DefaultSize)
             {
                 return false;
             }
 
+            if (this.IsFull)
+            {
+                throw new Exception("The limit of sprites was reached.");
+            }
+
             uint id = ++this.Count;
-            Sprite sprite = new Sprite(id, this.TransparencyEnabled);
+            Sprite sprite = new Sprite(id, this.transparency);
             sprite.SetBitmap(bitmap);
             this.sprites.Add(id, sprite);
             this.Changed = true;
@@ -264,7 +209,17 @@ namespace OpenTibia.Client.Sprites
 
         public bool AddSprites(Sprite[] sprites)
         {
-            if (!this.Loaded || this.Compiling || sprites == null || sprites.Length == 0)
+            if (sprites == null)
+            {
+                throw new ArgumentNullException("sprites");
+            }
+
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            if (!this.Loaded || this.Compiling || sprites.Length == 0)
             {
                 return false;
             }
@@ -278,9 +233,14 @@ namespace OpenTibia.Client.Sprites
                     continue;
                 }
 
+                if (this.IsFull)
+                {
+                    throw new Exception("The limit of sprites was reached.");
+                }
+
                 uint id = ++this.Count;
                 sprite.ID = id;
-                sprite.Transparent = this.TransparencyEnabled;
+                sprite.Transparent = this.transparency;
                 this.sprites.Add(id, sprite);
                 changedSprites.Add(sprite);
             }
@@ -302,7 +262,17 @@ namespace OpenTibia.Client.Sprites
 
         public bool AddSprites(Bitmap[] sprites)
         {
-            if (!this.Loaded || this.Compiling || sprites == null || sprites.Length == 0)
+            if (sprites == null)
+            {
+                throw new ArgumentNullException("sprites");
+            }
+
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            if (!this.Loaded || this.Compiling || sprites.Length == 0)
             {
                 return false;
             }
@@ -316,8 +286,13 @@ namespace OpenTibia.Client.Sprites
                     continue;
                 }
 
+                if (this.IsFull)
+                {
+                    throw new Exception("The limit of sprites was reached.");
+                }
+
                 uint id = ++this.Count;
-                Sprite sprite = new Sprite(id, this.TransparencyEnabled);
+                Sprite sprite = new Sprite(id, this.transparency);
                 this.sprites.Add(id, sprite);
                 changedSprites.Add(sprite);
             }
@@ -339,13 +314,23 @@ namespace OpenTibia.Client.Sprites
 
         public bool ReplaceSprite(Sprite newSprite, uint replaceId)
         {
-            if (!this.Loaded || this.Compiling || newSprite == null || replaceId == 0 || replaceId > this.Count)
+            if (newSprite == null)
+            {
+                throw new ArgumentNullException("newSprite");
+            }
+
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            if (!this.Loaded || this.Compiling || replaceId == 0 || replaceId > this.Count)
             {
                 return false;
             }
 
             newSprite.ID = replaceId;
-            newSprite.Transparent = this.TransparencyEnabled;
+            newSprite.Transparent = this.transparency;
 
             Sprite replacedSprite = null;
 
@@ -372,7 +357,17 @@ namespace OpenTibia.Client.Sprites
 
         public bool ReplaceSprite(Sprite newSprite)
         {
-            if (!this.Loaded || this.Compiling || newSprite != null)
+            if (newSprite == null)
+            {
+                throw new ArgumentNullException("newSprite");
+            }
+
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            if (!this.Loaded || this.Compiling)
             {
                 return this.ReplaceSprite(newSprite, newSprite.ID);
             }
@@ -382,12 +377,22 @@ namespace OpenTibia.Client.Sprites
 
         public bool ReplaceSprite(Bitmap newBitmap, uint replaceId)
         {
-            if (!this.Loaded || this.Compiling || newBitmap == null || newBitmap.Width != Sprite.DefaultSize || newBitmap.Height != Sprite.DefaultSize || replaceId == 0 || replaceId > this.Count)
+            if (newBitmap == null)
+            {
+                throw new ArgumentNullException("newBitmap");
+            }
+
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            if (!this.Loaded || this.Compiling || newBitmap.Width != Sprite.DefaultSize || newBitmap.Height != Sprite.DefaultSize || replaceId == 0 || replaceId > this.Count)
             {
                 return false;
             }
 
-            Sprite newSprite = new Sprite(replaceId, this.TransparencyEnabled);
+            Sprite newSprite = new Sprite(replaceId, this.transparency);
             Sprite replacedSprite = null;
 
             if (this.sprites.ContainsKey(replaceId))
@@ -413,7 +418,17 @@ namespace OpenTibia.Client.Sprites
 
         public bool ReplaceSprites(Sprite[] newSprites)
         {
-            if (!this.Loaded || this.Compiling || newSprites == null || newSprites.Length == 0)
+            if (newSprites == null)
+            {
+                throw new ArgumentNullException("newSprites");
+            }
+
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            if (!this.Loaded || this.Compiling || newSprites.Length == 0)
             {
                 return false;
             }
@@ -430,7 +445,7 @@ namespace OpenTibia.Client.Sprites
                 uint id = sprite.ID;
                 Sprite replacedSprite = null;
 
-                sprite.Transparent = this.TransparencyEnabled;
+                sprite.Transparent = this.transparency;
 
                 if (this.sprites.ContainsKey(id))
                 {
@@ -463,6 +478,11 @@ namespace OpenTibia.Client.Sprites
 
         public bool RemoveSprite(uint id)
         {
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
             if (!this.Loaded || this.Compiling || id == 0 || id > this.Count)
             {
                 return false;
@@ -483,11 +503,11 @@ namespace OpenTibia.Client.Sprites
             {
                 if (this.sprites.ContainsKey(id))
                 {
-                    this.sprites[id] = new Sprite(id, this.TransparencyEnabled);
+                    this.sprites[id] = new Sprite(id, this.transparency);
                 }
                 else
                 {
-                    this.sprites.Add(id, new Sprite(id, this.TransparencyEnabled));
+                    this.sprites.Add(id, new Sprite(id, this.transparency));
                 }
             }
 
@@ -503,6 +523,11 @@ namespace OpenTibia.Client.Sprites
 
         public bool RemoveSprites(uint[] ids)
         {
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
             if (!this.Loaded || this.Compiling || ids == null || ids.Length == 0)
             {
                 return false;
@@ -534,11 +559,11 @@ namespace OpenTibia.Client.Sprites
                 {
                     if (this.sprites.ContainsKey(id))
                     {
-                        this.sprites[id] = new Sprite(id, this.TransparencyEnabled);
+                        this.sprites[id] = new Sprite(id, this.transparency);
                     }
                     else
                     {
-                        this.sprites.Add(id, new Sprite(id, this.TransparencyEnabled));
+                        this.sprites.Add(id, new Sprite(id, this.transparency));
                     }
                 }
             }
@@ -563,6 +588,11 @@ namespace OpenTibia.Client.Sprites
 
         public Sprite GetSprite(uint id)
         {
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
             if (id <= this.Count)
             {
                 if (id == 0)
@@ -583,6 +613,11 @@ namespace OpenTibia.Client.Sprites
 
         public Sprite GetSprite(int id)
         {
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
             if (id >= 0)
             {
                 return this.GetSprite((uint)id);
@@ -593,6 +628,11 @@ namespace OpenTibia.Client.Sprites
 
         public Bitmap GetSpriteBitmap(uint id)
         {
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
             if (id <= this.Count)
             {
                 return this.ReadSprite(id).GetBitmap();
@@ -603,6 +643,11 @@ namespace OpenTibia.Client.Sprites
 
         public Bitmap GetSpriteBitmap(int id)
         {
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
             if (id >= 0 && id <= this.Count)
             {
                 return this.ReadSprite((uint)id).GetBitmap();
@@ -611,21 +656,21 @@ namespace OpenTibia.Client.Sprites
             return null;
         }
 
-        public bool Save()
-        {
-            if (this.Changed && !this.IsTemporary)
-            {
-                return this.Save(this.FilePath);
-            }
-
-            return true;
-        }
-
-        public bool Save(string path)
+        public bool Save(string path, Core.Version version, ClientFeatures features)
         {
             if (path == null)
             {
                 throw new ArgumentNullException("path");
+            }
+
+            if (version == null)
+            {
+                throw new ArgumentNullException("version");
+            }
+
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
             }
 
             if (!this.Loaded || this.Compiling)
@@ -633,14 +678,28 @@ namespace OpenTibia.Client.Sprites
                 return false;
             }
 
-            if (!this.Changed)
+            if (features == ClientFeatures.None || features == ClientFeatures.Transparency)
+            {
+                features |= version.Value >= (ushort)DatFormat.Format_755 ? ClientFeatures.PatternZ : features;
+                features |= version.Value >= (ushort)DatFormat.Format_960 ? ClientFeatures.Extended : features;
+                features |= version.Value >= (ushort)DatFormat.Format_1050 ? ClientFeatures.FrameDurations : features;
+                features |= version.Value >= (ushort)DatFormat.Format_1057 ? ClientFeatures.FrameGroups : features;
+            }
+
+            string directory = Path.GetDirectoryName(path);
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            if (!this.Changed && this.Version.Equals(version) && this.ClientFeatures == features)
             {
                 //  just copy the content and reload if nothing has changed.
                 if (this.FilePath != null && !this.FilePath.Equals(path))
                 {
                     File.Copy(this.FilePath, path, true);
 
-                    if (!this.Reload(this.FilePath, path))
+                    if (!this.InternalLoad(path, version, features, true))
                     {
                         return false;
                     }
@@ -659,10 +718,38 @@ namespace OpenTibia.Client.Sprites
                 return true;
             }
 
-            this.newPath = path;
-            this.tmpPath = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + ".tmp");
-            this.worker.RunWorkerAsync();
+            this.compilationData = new CompilationData();
+            this.compilationData.Path = path;
+            this.compilationData.TmpPath = Path.Combine(directory, Path.GetFileNameWithoutExtension(path) + ".tmp");
+            this.compilationData.Version = version;
+            this.compilationData.Features = features;
             this.Compiling = true;
+            this.worker.RunWorkerAsync();
+            return true;
+        }
+
+        public bool Save(string path, Core.Version version)
+        {
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            return this.Save(path, version, ClientFeatures.None);
+        }
+
+        public bool Save()
+        {
+            if (this.Disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            if (this.Changed && !this.IsTemporary)
+            {
+                return this.Save(this.FilePath, this.Version, this.ClientFeatures);
+            }
+
             return true;
         }
 
@@ -670,90 +757,160 @@ namespace OpenTibia.Client.Sprites
         {
             if (this.Compiling)
             {
-                this.worker.CancelAsync();
                 this.Compiling = false;
+                this.worker.CancelAsync();
                 return true;
             }
 
             return false;
         }
 
-        public bool Unload()
+        public void Dispose()
         {
+            this.Disposed = true;
+
             if (!this.Loaded)
             {
-                return false;
+                return;
             }
 
             if (this.stream != null)
             {
                 this.stream.Dispose();
                 this.stream = null;
+                this.reader.Dispose();
                 this.reader = null;
             }
 
             this.FilePath = null;
             this.sprites.Clear();
+            this.sprites = null;
             this.rawSpriteCount = 0;
             this.Count = 0;
-            this.ExtendedEnabled = false;
-            this.TransparencyEnabled = false;
+            this.transparency = false;
             this.Changed = false;
             this.Loaded = false;
             this.Compiling = false;
-            this.newPath = null;
-            this.tmpPath = null;
 
-            if (this.StorageUnloaded != null)
+            if (this.StorageDisposed != null)
             {
-                this.StorageUnloaded(this, new EventArgs());
+                this.StorageDisposed(this, new EventArgs());
             }
-            
-            return true;
         }
 
         #endregion
 
-        #region Private Methods
+        #region | Private Methods |
 
-        private bool Reload(string oldPath, string newPath)
+        private bool InternalCreate(Core.Version version, ClientFeatures features)
         {
-            if (!File.Exists(oldPath))
+            if (this.Compiling)
             {
                 return false;
             }
 
-            try
+            if (this.Loaded)
             {
-                if (this.reader != null)
+                return true;
+            }
+
+            if (features == ClientFeatures.None || features == ClientFeatures.Transparency)
+            {
+                features |= version.Value >= (ushort)DatFormat.Format_755 ? ClientFeatures.PatternZ : features;
+                features |= version.Value >= (ushort)DatFormat.Format_960 ? ClientFeatures.Extended : features;
+                features |= version.Value >= (ushort)DatFormat.Format_1050 ? ClientFeatures.FrameDurations : features;
+                features |= version.Value >= (ushort)DatFormat.Format_1057 ? ClientFeatures.FrameGroups : features;
+            }
+
+            this.Version = version;
+            this.ClientFeatures = features;
+            this.transparency = (features & ClientFeatures.Transparency) == ClientFeatures.Transparency ? true : false;
+            this.headSize = (features & ClientFeatures.Extended) == ClientFeatures.Extended ? HeaderU32 : HeaderU16;
+            this.blankSprite = new Sprite(0, this.transparency);
+            this.sprites.Add(1, new Sprite(1, this.transparency));
+            this.rawSpriteCount = 0;
+            this.Count = 1;
+            this.Changed = true;
+            this.Loaded = true;
+            this.Compiling = false;
+            this.Disposed = false;
+            return true;
+        }
+
+        private bool InternalLoad(string path, Core.Version version, ClientFeatures features, bool reloading)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                throw new ArgumentNullException("path");
+            }
+
+            if (version == null)
+            {
+                throw new ArgumentNullException("version");
+            }
+
+            if (!File.Exists(path))
+            {
+                string message = "File not found: {0}"; // TODO: ResourceManager.GetString("Exception.FileNotFound");
+                throw new FileNotFoundException(string.Format(message, path), "path");
+            }
+
+            if (this.Compiling)
+            {
+                return false;
+            }
+
+            if (this.Loaded)
+            {
+                if (reloading)
                 {
-                    this.reader.Dispose();
-                    this.reader = null;
+                    this.stream.Close();
                     this.stream = null;
                 }
-
-                if (File.Exists(newPath))
+                else
                 {
-                    File.Delete(newPath);
+                    return true;
                 }
-
-                File.Move(oldPath, newPath);
-
-                this.FilePath = newPath;
-                this.stream = new FileStream(newPath, FileMode.Open);
-                this.reader = new BinaryReader(this.stream);
-                this.sprites.Clear();
-                this.rawSpriteCount = this.ExtendedEnabled ? this.reader.ReadUInt32() : this.reader.ReadUInt16();
-                this.Count = this.rawSpriteCount;
-                this.Changed = false;
-                this.Loaded = true;
             }
-            catch (Exception ex)
+
+            if (features == ClientFeatures.None || features == ClientFeatures.Transparency)
             {
-                Console.WriteLine(ex.StackTrace);
-                return false;
+                features |= version.Value >= (ushort)DatFormat.Format_755 ? ClientFeatures.PatternZ : features;
+                features |= version.Value >= (ushort)DatFormat.Format_960 ? ClientFeatures.Extended : features;
+                features |= version.Value >= (ushort)DatFormat.Format_1050 ? ClientFeatures.FrameDurations : features;
+                features |= version.Value >= (ushort)DatFormat.Format_1057 ? ClientFeatures.FrameGroups : features;
             }
 
+            this.stream = new FileStream(path, FileMode.Open);
+            this.reader = new BinaryReader(this.stream);
+
+            uint signature = this.reader.ReadUInt32();
+            if (signature != version.SprSignature)
+            {
+                string message = "Invalid SPR signature. Expected signature is {0:X} and loaded signature is {1:X}.";
+                throw new Exception(string.Format(message, version.SprSignature, signature));
+            }
+
+            if ((features & ClientFeatures.Extended) == ClientFeatures.Extended)
+            {
+                this.headSize = HeaderU32;
+                this.rawSpriteCount = this.reader.ReadUInt32();
+            }
+            else
+            {
+                this.headSize = HeaderU16;
+                this.rawSpriteCount = this.reader.ReadUInt16();
+            }
+
+            this.FilePath = path;
+            this.Version = version;
+            this.ClientFeatures = features;
+            this.transparency = (features & ClientFeatures.Transparency) == ClientFeatures.Transparency ? true : false;
+            this.Count = this.rawSpriteCount;
+            this.blankSprite = new Sprite(0, this.transparency);
+            this.Changed = false;
+            this.Loaded = true;
+            this.Disposed = false;
             return true;
         }
 
@@ -778,7 +935,7 @@ namespace OpenTibia.Client.Sprites
                 // então retornamos um sprite sem a leitura dos dados.
                 if (spriteAddress == 0)
                 {
-                    return new Sprite(id, this.TransparencyEnabled);
+                    return new Sprite(id, this.transparency);
                 }
 
                 // Posiciona o stream para o endereço do sprite.
@@ -790,7 +947,7 @@ namespace OpenTibia.Client.Sprites
                 this.reader.ReadByte(); // green key color
                 this.reader.ReadByte(); // blue key color
 
-                Sprite sprite = new Sprite(id, this.TransparencyEnabled);
+                Sprite sprite = new Sprite(id, this.transparency);
 
                 // O tamanho dos pixels compressados.
                 ushort pixelDataSize = this.reader.ReadUInt16();
@@ -811,28 +968,31 @@ namespace OpenTibia.Client.Sprites
 
         #endregion
 
-        #region Event Handlers
+        #region | Event Handlers |
 
         private void DoWork_Handler(object sender, DoWorkEventArgs e)
         {
             BackgroundWorker worker = sender as BackgroundWorker;
 
-            using (BinaryWriter writer = new BinaryWriter(new FileStream(this.tmpPath, FileMode.Create)))
+            using (BinaryWriter writer = new BinaryWriter(new FileStream(this.compilationData.TmpPath, FileMode.Create)))
             {
                 uint count = 0;
+                bool extended = (this.compilationData.Features & ClientFeatures.Extended) == ClientFeatures.Extended;
+                bool transparent = (this.compilationData.Features & ClientFeatures.Transparency) == ClientFeatures.Transparency;
+                bool changeTransparency = this.transparency != transparent;
 
                 // write the signature
-                writer.Write((uint)this.Version.SprSignature);
+                writer.Write(this.compilationData.Version.SprSignature);
 
                 // write the sprite count
-                if (this.ExtendedEnabled)
+                if (extended)
                 {
                     count = this.Count;
-                    writer.Write((uint)count);
+                    writer.Write(count);
                 }
                 else
                 {
-                    count = this.Count >= 0xFFFE ? 0xFFFE : this.Count;
+                    count = this.Count >= 0xFFFF ? 0xFFFF : this.Count;
                     writer.Write((ushort)count);
                 }
 
@@ -850,9 +1010,17 @@ namespace OpenTibia.Client.Sprites
 
                     writer.Seek(addressPosition, SeekOrigin.Begin);
 
-                    if (this.sprites.ContainsKey(id))
+                    if (this.sprites.ContainsKey(id) || changeTransparency)
                     {
-                        Sprite sprite = this.sprites[id];
+                        Sprite sprite = null;
+                        this.sprites.TryGetValue(id, out sprite);
+
+                        if (sprite == null)
+                        {
+                            sprite = this.ReadSprite(id);
+                        }
+
+                        sprite.Transparent = transparent;
 
                         if (sprite.Length == 0)
                         {
@@ -935,6 +1103,13 @@ namespace OpenTibia.Client.Sprites
 
                 writer.Close();
             }
+
+            if (File.Exists(this.compilationData.Path))
+            {
+                File.Delete(this.compilationData.Path);
+            }
+
+            File.Move(this.compilationData.TmpPath, this.compilationData.Path);
         }
 
         private void WorkerProgressChanged_Handler(object sender, ProgressChangedEventArgs e)
@@ -947,11 +1122,8 @@ namespace OpenTibia.Client.Sprites
 
         private void RunWorkerCompleted_Handler(object sender, RunWorkerCompletedEventArgs e)
         {
-            if (!e.Cancelled && this.Reload(this.tmpPath, this.newPath))
+            if (!e.Cancelled && this.InternalLoad(this.compilationData.Path, this.compilationData.Version, this.compilationData.Features, true))
             {
-                this.tmpPath = null;
-                this.newPath = null;
-
                 if (this.StorageCompiled != null)
                 {
                     this.StorageCompiled(this, new EventArgs());
@@ -962,11 +1134,9 @@ namespace OpenTibia.Client.Sprites
                     this.ProgressChanged(this, 100);
                 }
             }
-            else if (File.Exists(tmpPath))
+            else if (File.Exists(this.compilationData.TmpPath))
             {
-                File.Delete(tmpPath);
-                this.tmpPath = null;
-                this.newPath = null;
+                File.Delete(this.compilationData.TmpPath);
 
                 if (this.ProgressChanged != null)
                 {
@@ -978,6 +1148,54 @@ namespace OpenTibia.Client.Sprites
             {
                 this.StorageCompilationCanceled(this, new EventArgs());
             }
+        }
+
+        #endregion
+
+        #region | Public Static Methods |
+
+        public static SpriteStorage Create(Core.Version version, ClientFeatures features)
+        {
+            SpriteStorage storage = new SpriteStorage();
+            if (storage.InternalCreate(version, features))
+            {
+                return storage;
+            }
+
+            return null;
+        }
+
+        public static SpriteStorage Create(Core.Version version)
+        {
+            SpriteStorage storage = new SpriteStorage();
+            if (storage.InternalCreate(version, ClientFeatures.None))
+            {
+                return storage;
+            }
+
+            return null;
+        }
+
+        public static SpriteStorage Load(string path, Core.Version version, ClientFeatures features)
+        {
+            SpriteStorage storage = new SpriteStorage();
+            if (storage.InternalLoad(path, version, features, false))
+            {
+                return storage;
+            }
+
+            return null;
+        }
+
+        public static SpriteStorage Load(string path, Core.Version version)
+        {
+            SpriteStorage storage = new SpriteStorage();
+            if (storage.InternalLoad(path, version, ClientFeatures.None, false))
+            {
+                return storage;
+            }
+
+            return null;
         }
 
         #endregion

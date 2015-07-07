@@ -66,7 +66,7 @@
     <Compile Include="OpenTibia.Client\Sprites\SpriteStorage.cs" />
     <Compile Include="OpenTibia.Client\Things\ClothSlot.cs" />
     <Compile Include="OpenTibia.Client\Things\DatFormat.cs" />
-    <Compile Include="OpenTibia.Client\ClientFeature.cs" />
+    <Compile Include="OpenTibia.Client\ClientFeatures.cs" />
     <Compile Include="OpenTibia.Client\Things\MarketCategory.cs" />
     <Compile Include="OpenTibia.Client\Things\ThingType.cs" />
     <Compile Include="OpenTibia.Collections\SpriteGroups.cs" />

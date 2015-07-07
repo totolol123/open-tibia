@@ -29,7 +29,7 @@ using System;
 namespace OpenTibia.Client
 {
     [Flags]
-    public enum ClientFeature
+    public enum ClientFeatures
     {
         None = 0,
         PatternZ = 1 << 0,
