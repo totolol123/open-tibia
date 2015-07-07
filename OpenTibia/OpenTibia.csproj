@@ -86,6 +86,9 @@
     <Compile Include="OpenTibia.Controls\SpriteListBox.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="OpenTibia.Controls\ThingTypeListBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="OpenTibia.Core\IStorage.cs" />
     <Compile Include="OpenTibia.Core\Version.cs" />
     <Compile Include="OpenTibia.Core\VersionListChangedArgs.cs" />
