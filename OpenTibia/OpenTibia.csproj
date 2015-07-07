@@ -65,11 +65,13 @@
     <Compile Include="OpenTibia.Client\Sprites\SpriteSheet.cs" />
     <Compile Include="OpenTibia.Client\Sprites\SpriteStorage.cs" />
     <Compile Include="OpenTibia.Client\Things\ClothSlot.cs" />
+    <Compile Include="OpenTibia.Client\Things\DatFlags.cs" />
     <Compile Include="OpenTibia.Client\Things\DatFormat.cs" />
     <Compile Include="OpenTibia.Client\ClientFeatures.cs" />
     <Compile Include="OpenTibia.Client\Things\MarketCategory.cs" />
     <Compile Include="OpenTibia.Client\Things\ThingData.cs" />
     <Compile Include="OpenTibia.Client\Things\ThingType.cs" />
+    <Compile Include="OpenTibia.Client\Things\ThingTypeSerializer.cs" />
     <Compile Include="OpenTibia.Collections\SpriteGroups.cs" />
     <Compile Include="OpenTibia.Controls\ColorChangedArgs.cs" />
     <Compile Include="OpenTibia.Controls\EightBitColorGrid.cs">
@@ -91,6 +93,7 @@
     <Compile Include="OpenTibia.IO\BinaryTreeReader.cs" />
     <Compile Include="OpenTibia.IO\BinaryTreeWriter.cs" />
     <Compile Include="OpenTibia.IO\SpecialChar.cs" />
+    <Compile Include="OpenTibia.Obd\ObdCoder.cs" />
     <Compile Include="OpenTibia.Utils\BitmapLocker.cs" />
     <Compile Include="OpenTibia.Utils\Clock.cs" />
     <Compile Include="OpenTibia.Utils\ColorUtils.cs" />
