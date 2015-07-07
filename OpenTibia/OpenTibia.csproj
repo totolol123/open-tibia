@@ -60,6 +60,8 @@
     <Compile Include="OpenTibia.Animation\Animator.cs" />
     <Compile Include="OpenTibia.Animation\FrameDuration.cs" />
     <Compile Include="OpenTibia.Animation\FrameGroup.cs" />
+    <Compile Include="OpenTibia.Client\ClientImpl.cs" />
+    <Compile Include="OpenTibia.Client\IClient.cs" />
     <Compile Include="OpenTibia.Client\Sprites\Sprite.cs" />
     <Compile Include="OpenTibia.Client\Sprites\SpriteListChangedArgs.cs" />
     <Compile Include="OpenTibia.Client\Sprites\SpriteSheet.cs" />
@@ -67,7 +69,6 @@
     <Compile Include="OpenTibia.Client\Things\ClothSlot.cs" />
     <Compile Include="OpenTibia.Client\Things\DatFlags.cs" />
     <Compile Include="OpenTibia.Client\Things\DatFormat.cs" />
-    <Compile Include="OpenTibia.Client\ClientFeatures.cs" />
     <Compile Include="OpenTibia.Client\Things\MarketCategory.cs" />
     <Compile Include="OpenTibia.Client\Things\ThingData.cs" />
     <Compile Include="OpenTibia.Client\Things\ThingListChangedArgs.cs" />
@@ -101,6 +102,7 @@
     <Compile Include="OpenTibia.Utils\ColorUtils.cs" />
     <Compile Include="OpenTibia.Utils\LZMACoder.cs" />
     <Compile Include="OpenTibia.Utils\OutfitData.cs" />
+    <Compile Include="OpenTibia.Utils\SpriteCache.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />
