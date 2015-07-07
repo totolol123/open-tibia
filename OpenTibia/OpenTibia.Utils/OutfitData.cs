@@ -22,25 +22,40 @@
 */
 #endregion
 
-#region Using Statements
-using System;
-#endregion
-
 namespace OpenTibia.Utils
 {
     public class OutfitData
     {
-        #region Public Properties
+        #region | Constructor |
+
+        public OutfitData(ushort type, byte head, byte body, byte legs, byte feet, byte addons)
+        {
+            this.Type = type;
+            this.Head = head;
+            this.Body = body;
+            this.Legs = legs;
+            this.Feet = feet;
+            this.Addons = addons;
+        }
+
+        public OutfitData() : this(0, 0, 0, 0, 0, 0)
+        {
+             ////
+        }
+
+        #endregion
+
+        #region | Public Properties |
 
         public ushort Type { get; set; }
 
-        public ushort Head { get; set; }
+        public byte Head { get; set; }
 
-        public ushort Body { get; set; }
+        public byte Body { get; set; }
 
-        public ushort Legs { get; set; }
+        public byte Legs { get; set; }
 
-        public ushort Feet { get; set; }
+        public byte Feet { get; set; }
 
         public byte Addons { get; set; }
 

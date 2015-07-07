@@ -68,6 +68,7 @@
     <Compile Include="OpenTibia.Client\Things\DatFormat.cs" />
     <Compile Include="OpenTibia.Client\ClientFeatures.cs" />
     <Compile Include="OpenTibia.Client\Things\MarketCategory.cs" />
+    <Compile Include="OpenTibia.Client\Things\ThingData.cs" />
     <Compile Include="OpenTibia.Client\Things\ThingType.cs" />
     <Compile Include="OpenTibia.Collections\SpriteGroups.cs" />
     <Compile Include="OpenTibia.Controls\ColorChangedArgs.cs" />
