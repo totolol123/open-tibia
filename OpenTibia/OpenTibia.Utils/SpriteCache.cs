@@ -31,7 +31,7 @@ using System.Drawing;
 
 namespace OpenTibia.Utils
 {
-    public class SpriteCache : IDisposable
+    public class SpriteCache
     {
         #region Private Properties
 
@@ -100,7 +100,7 @@ namespace OpenTibia.Utils
             return null;
         }
 
-        public void Dispose()
+        public void Clear()
         {
             this.items.Clear();
             this.outfits.Clear();

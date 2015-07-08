@@ -94,15 +94,67 @@ namespace OpenTibia.Client
             }
         }
 
-        public bool Disposed { get; private set; }
-
         #endregion
 
         #region | Public Methods |
 
+        public bool CreateEmpty(Core.Version version, ClientFeatures features)
+        {
+            if (version == null)
+            {
+                throw new ArgumentNullException("version");
+            }
+
+            this.Things = ThingTypeStorage.Create(version, features);
+            if (this.Things == null)
+            {
+                return false;
+            }
+
+            this.Sprites = SpriteStorage.Create(version, features);
+            if (this.Sprites == null)
+            {
+                return false;
+            }
+
+            this.Things.ProgressChanged += new ProgressHandler(this.StorageProgressChanged_Handler);
+            this.Things.StorageCompiled += new EventHandler(this.StorageCompiled_Handler);
+            this.Things.StorageDisposed += new EventHandler(this.StorageDisposed_Handler);
+            this.Sprites.ProgressChanged += new ProgressHandler(this.StorageProgressChanged_Handler);
+            this.Sprites.StorageCompiled += new EventHandler(this.StorageCompiled_Handler);
+            this.Sprites.StorageDisposed += new EventHandler(this.StorageDisposed_Handler);
+
+            if (this.Loaded && this.ClientLoaded != null)
+            {
+                this.ClientLoaded(this, new EventArgs());
+            }
+
+            return this.Loaded;
+        }
+
+        public bool CreateEmpty(Core.Version version)
+        {
+            return this.CreateEmpty(version, ClientFeatures.None);
+        }
+
         public bool Load(string datPath, string sprPath, Core.Version version, ClientFeatures features)
         {
-            this.Things = ThingTypeStorage.Load(datPath, version);
+            if (datPath == null)
+            {
+                throw new ArgumentNullException("datPath");
+            }
+
+            if (sprPath == null)
+            {
+                throw new ArgumentNullException("sprPath");
+            }
+
+            if (version == null)
+            {
+                throw new ArgumentNullException("version");
+            }
+
+            this.Things = ThingTypeStorage.Load(datPath, version, features);
             if (this.Things == null)
             {
                 return false;
@@ -113,6 +165,13 @@ namespace OpenTibia.Client
             {
                 return false;
             }
+
+            this.Things.ProgressChanged += new ProgressHandler(this.StorageProgressChanged_Handler);
+            this.Things.StorageCompiled += new EventHandler(this.StorageCompiled_Handler);
+            this.Things.StorageDisposed += new EventHandler(this.StorageDisposed_Handler);
+            this.Sprites.ProgressChanged += new ProgressHandler(this.StorageProgressChanged_Handler);
+            this.Sprites.StorageCompiled += new EventHandler(this.StorageCompiled_Handler);
+            this.Sprites.StorageDisposed += new EventHandler(this.StorageDisposed_Handler);
 
             if (this.Loaded && this.ClientLoaded != null)
             {
@@ -510,32 +569,92 @@ namespace OpenTibia.Client
             return Enumerable.ToArray(this.Things.Missiles.Values);
         }
 
-        public void Dispose()
+        public bool Save(string datPath, string sprPath, Core.Version version, ClientFeatures features)
         {
-            if (this.Disposed)
+            if (datPath == null)
             {
-                return;
+                throw new ArgumentNullException("datPath");
+            }
+
+            if (sprPath == null)
+            {
+                throw new ArgumentNullException("sprPath");
+            }
+
+            if (version == null)
+            {
+                throw new ArgumentNullException("version");
+            }
+
+            if (!this.Things.Save(datPath, version, features))
+            {
+                return false;
+            }
+
+            if (!this.Sprites.Save(sprPath, version, features))
+            {
+                return false;
+            }
+
+            return true;
+        }
+        
+        public bool Save(string datPath, string sprPath, Core.Version version)
+        {
+            return this.Save(datPath, sprPath, version, ClientFeatures.None);
+        }
+
+        public bool Save()
+        {
+            return this.Things.Save() && this.Sprites.Save();
+        }
+
+        public bool Unload()
+        {
+            if (!this.Loaded)
+            {
+                return false;
             }
 
             if (this.Things != null)
             {
+                this.Things.ProgressChanged -= new ProgressHandler(this.StorageProgressChanged_Handler);
+                this.Things.StorageCompiled -= new EventHandler(this.StorageCompiled_Handler);
+                this.Things.StorageDisposed -= new EventHandler(this.StorageDisposed_Handler);
                 this.Things.Dispose();
                 this.Things = null;
             }
 
             if (this.Sprites != null)
             {
+                this.Sprites.ProgressChanged -= new ProgressHandler(this.StorageProgressChanged_Handler);
+                this.Sprites.StorageCompiled -= new EventHandler(this.StorageCompiled_Handler);
+                this.Sprites.StorageDisposed -= new EventHandler(this.StorageDisposed_Handler);
                 this.Sprites.Dispose();
                 this.Sprites = null;
             }
 
-            spriteCache.Dispose();
-            spriteCache = null;
+            this.spriteCache.Clear();
+
+            if (this.ClientUnloaded != null)
+            {
+                this.ClientUnloaded(this, new EventArgs());
+            }
+
+            return true;
         }
 
         #endregion
 
         #region | Event Handlers |
+
+        private void StorageCompiled_Handler(object sender, EventArgs e)
+        {
+            if (!this.Changed && this.ClientCompiled != null)
+            {
+                this.ClientCompiled(this, new EventArgs());
+            }
+        }
 
         private void StorageDisposed_Handler(object sender, EventArgs e)
         {

@@ -46,7 +46,7 @@ namespace OpenTibia.Client
         Transparency = 1 << 4
     }
 
-    public interface IClient : IDisposable
+    public interface IClient
     {
         #region | Events |
 
@@ -75,6 +75,10 @@ namespace OpenTibia.Client
         #endregion
 
         #region | Methods |
+
+        bool CreateEmpty(Core.Version version, ClientFeatures features);
+
+        bool CreateEmpty(Core.Version version);
 
         bool Load(string datPath, string sprPath, Core.Version version, ClientFeatures features);
 
@@ -109,6 +113,12 @@ namespace OpenTibia.Client
         ThingType[] GetAllEffects();
 
         ThingType[] GetAllMissiles();
+
+        bool Save(string datPath, string sprPath, Core.Version version, ClientFeatures features);
+
+        bool Save(string datPath, string sprPath, Core.Version version);
+
+        bool Save();
 
         #endregion
     }

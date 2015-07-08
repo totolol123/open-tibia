@@ -575,126 +575,123 @@ namespace OpenTibia.Client.Things
                 Directory.CreateDirectory(directory);
             }
 
-            if (!this.Changed)
+            if (!this.Changed && this.Version.Equals(version) && this.ClientFeatures == features &&
+                this.FilePath != null && !this.FilePath.Equals(path))
             {
                 // just copy the content if nothing has changed.
-                if (this.FilePath != null && !this.FilePath.Equals(path))
-                {
-                    File.Copy(this.FilePath, path, true);
+                File.Copy(this.FilePath, path, true);
 
+                if (this.ProgressChanged != null)
+                {
+                    this.ProgressChanged(this, 100);
+                }
+            }
+            else
+            {
+                string tmpPath = Path.Combine(directory, Path.GetFileNameWithoutExtension(path) + ".tmp");
+
+                using (BinaryWriter writer = new BinaryWriter(new FileStream(tmpPath, FileMode.Create)))
+                {
+                    // write the signature.
+                    writer.Write(version.DatSignature);
+
+                    // write item, outfit, effect and missile count.
+                    writer.Write(this.ItemCount);
+                    writer.Write(this.OutfitCount);
+                    writer.Write(this.EffectCount);
+                    writer.Write(this.MissileCount);
+
+                    int total = this.ItemCount + this.OutfitCount + this.EffectCount + this.MissileCount;
+                    int compiled = 0;
+
+                    // write item list.
+                    for (ushort id = 100; id <= this.ItemCount; id++)
+                    {
+                        ThingType item = this.Items[id];
+                        if (!ThingTypeSerializer.WriteProperties(item, this.Version.Format, writer) ||
+                            !ThingTypeSerializer.WriteTexturePatterns(item, features, writer))
+                        {
+                            throw new Exception("Items list cannot be compiled.");
+                        }
+                    }
+
+                    // update progress.
                     if (this.ProgressChanged != null)
                     {
-                        this.ProgressChanged(this, 100);
+                        compiled += this.ItemCount;
+                        this.ProgressChanged(this, (compiled * 100) / total);
                     }
 
-                    if (this.StorageCompiled != null)
+                    bool onlyOneGroup = ((this.ClientFeatures & ClientFeatures.FrameGroups) == ClientFeatures.FrameGroups) &&
+                                        ((features & ClientFeatures.FrameGroups) != ClientFeatures.FrameGroups);
+
+                    // write outfit list.
+                    for (ushort id = 1; id <= this.OutfitCount; id++)
                     {
-                        this.StorageCompiled(this, new EventArgs());
+                        ThingType outfit = onlyOneGroup ? ThingType.ToSingleFrameGroup(this.Outfits[id]) : this.Outfits[id];
+                        if (!ThingTypeSerializer.WriteProperties(outfit, this.Version.Format, writer) ||
+                            !ThingTypeSerializer.WriteTexturePatterns(outfit, features, writer))
+                        {
+                            throw new Exception("Outfits list cannot be compiled.");
+                        }
+                    }
+
+                    // update progress.
+                    if (this.ProgressChanged != null)
+                    {
+                        compiled += this.OutfitCount;
+                        this.ProgressChanged(this, (compiled * 100) / total);
+                    }
+
+                    // write effect list.
+                    for (ushort id = 1; id <= this.EffectCount; id++)
+                    {
+                        ThingType effect = this.Effects[id];
+                        if (!ThingTypeSerializer.WriteProperties(effect, this.Version.Format, writer) ||
+                            !ThingTypeSerializer.WriteTexturePatterns(effect, features, writer))
+                        {
+                            throw new Exception("Effects list cannot be compiled.");
+                        }
+                    }
+
+                    // update progress.
+                    if (this.ProgressChanged != null)
+                    {
+                        compiled += this.EffectCount;
+                        this.ProgressChanged(this, (compiled * 100) / total);
+                    }
+
+                    // write missile list.
+                    for (ushort id = 1; id <= this.MissileCount; id++)
+                    {
+                        ThingType missile = this.Missiles[id];
+                        if (!ThingTypeSerializer.WriteProperties(missile, this.Version.Format, writer) ||
+                            !ThingTypeSerializer.WriteTexturePatterns(missile, features, writer))
+                        {
+                            throw new Exception("Missiles list cannot be compiled.");
+                        }
+                    }
+
+                    // update progress.
+                    if (this.ProgressChanged != null)
+                    {
+                        compiled += this.MissileCount;
+                        this.ProgressChanged(this, (compiled * 100) / total);
                     }
                 }
 
-                return true;
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+
+                File.Move(tmpPath, path);
             }
-
-            string tmpPath = Path.Combine(directory, Path.GetFileNameWithoutExtension(path) + ".tmp");
-
-            using (BinaryWriter writer = new BinaryWriter(new FileStream(tmpPath, FileMode.Create)))
-            {
-                // write the signature.
-                writer.Write(version.DatSignature);
-
-                // write item, outfit, effect and missile count.
-                writer.Write(this.ItemCount);
-                writer.Write(this.OutfitCount);
-                writer.Write(this.EffectCount);
-                writer.Write(this.MissileCount);
-
-                int total = this.ItemCount + this.OutfitCount + this.EffectCount + this.MissileCount;
-                int compiled = 0;
-
-                // write item list.
-                for (ushort id = 100; id <= this.ItemCount; id++)
-                {
-                    ThingType item = this.Items[id];
-                    if (!ThingTypeSerializer.WriteProperties(item, this.Version.Format, writer) ||
-                        !ThingTypeSerializer.WriteTexturePatterns(item, features, writer))
-                    {
-                        throw new Exception("Items list cannot be compiled.");
-                    }
-                }
-
-                // update progress.
-                if (this.ProgressChanged != null)
-                {
-                    compiled += this.ItemCount;
-                    this.ProgressChanged(this, (compiled * 100) / total);
-                }
-
-                // write outfit list.
-                for (ushort id = 1; id <= this.OutfitCount; id++)
-                {
-                    ThingType outfit = this.Outfits[id];
-                    if (!ThingTypeSerializer.WriteProperties(outfit, this.Version.Format, writer) ||
-                        !ThingTypeSerializer.WriteTexturePatterns(outfit, features, writer))
-                    {
-                        throw new Exception("Outfits list cannot be compiled.");
-                    }
-                }
-
-                // update progress.
-                if (this.ProgressChanged != null)
-                {
-                    compiled += this.OutfitCount;
-                    this.ProgressChanged(this, (compiled * 100) / total);
-                }
-
-                // write effect list.
-                for (ushort id = 1; id <= this.EffectCount; id++)
-                {
-                    ThingType effect = this.Effects[id];
-                    if (!ThingTypeSerializer.WriteProperties(effect, this.Version.Format, writer) ||
-                        !ThingTypeSerializer.WriteTexturePatterns(effect, features, writer))
-                    {
-                        throw new Exception("Effects list cannot be compiled.");
-                    }
-                }
-
-                // update progress.
-                if (this.ProgressChanged != null)
-                {
-                    compiled += this.EffectCount;
-                    this.ProgressChanged(this, (compiled * 100) / total);
-                }
-
-                // write missile list.
-                for (ushort id = 1; id <= this.MissileCount; id++)
-                {
-                    ThingType missile = this.Missiles[id];
-                    if (!ThingTypeSerializer.WriteProperties(missile, this.Version.Format, writer) ||
-                        !ThingTypeSerializer.WriteTexturePatterns(missile, features, writer))
-                    {
-                        throw new Exception("Missiles list cannot be compiled.");
-                    }
-                }
-
-                // update progress.
-                if (this.ProgressChanged != null)
-                {
-                    compiled += this.MissileCount;
-                    this.ProgressChanged(this, (compiled * 100) / total);
-                }
-            }
-
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-
-            File.Move(tmpPath, path);
 
             this.FilePath = path;
+            this.Version = version;
+            this.ClientFeatures = features;
             this.Changed = false;
-            this.Loaded = true;
 
             if (this.StorageCompiled != null)
             {
