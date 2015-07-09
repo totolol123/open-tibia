@@ -423,7 +423,6 @@ namespace OpenTibia.Client
                                 int index = group.GetTextureIndex(l, x, y, z, f);
                                 int fx = (index % totalX) * pixelsWidth;
                                 int fy = (int)(Math.Floor((decimal)(index / totalX)) * pixelsHeight);
-
                                 rectList.Add(index, new Rect(fx, fy, pixelsWidth, pixelsHeight));
 
                                 for (int w = 0; w < group.Width; w++)
@@ -431,11 +430,9 @@ namespace OpenTibia.Client
                                     for (int h = 0; h < group.Height; h++)
                                     {
                                         index = group.GetSpriteIndex(w, h, l, x, y, z, f);
-
                                         int px = ((group.Width - w - 1) * Sprite.DefaultSize);
                                         int py = ((group.Height - h - 1) * Sprite.DefaultSize);
                                         uint spriteId = group.SpriteIDs[index];
-
                                         lockBitmap.CopyPixels(this.Sprites.GetSpriteBitmap(spriteId), px + fx, py + fy);
                                     }
                                 }

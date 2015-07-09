@@ -90,7 +90,7 @@ namespace OpenTibia.Client.Things
                 group.PatternZ = patternZEnabled ? reader.ReadByte() : (byte)1;
                 group.Frames = reader.ReadByte();
 
-                if (group.Frames > 1)
+                if (frameDurationsEnabled && group.Frames > 1)
                 {
                     group.IsAnimation = true;
                     group.AnimationMode = (AnimationMode)reader.ReadByte();
@@ -193,7 +193,7 @@ namespace OpenTibia.Client.Things
 
                 writer.Write(group.Frames); // write frames
 
-                if (group.IsAnimation && frameDurationsEnabled)
+                if (frameDurationsEnabled && group.Frames > 1)
                 {
                     writer.Write((byte)group.AnimationMode); // write animation type
                     writer.Write(group.LoopCount); // write frame strategy
