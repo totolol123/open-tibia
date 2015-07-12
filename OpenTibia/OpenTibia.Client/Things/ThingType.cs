@@ -590,19 +590,18 @@ namespace OpenTibia.Client.Things
                                     {
                                         for (byte h = 0; h < group.Height; h++)
                                         {
-                                            int i = group.GetSpriteIndex(w, h, l, x, y, z, f);
-                                            int ni = 0;
-
                                             if (k == (byte)FrameGroupType.Default && f == 0)
                                             {
-                                                ni = newGroup.GetSpriteIndex(w, h, l, x, y, z, f);
+                                                int i = group.GetSpriteIndex(w, h, l, x, y, z, f);
+                                                int ni = newGroup.GetSpriteIndex(w, h, l, x, y, z, f);
+                                                newGroup.SpriteIDs[ni] = group.SpriteIDs[i];
                                             }
                                             else if (k == (byte)FrameGroupType.Walking)
                                             {
-                                                ni = newGroup.GetSpriteIndex(w, h, l, x, y, z, f + 1);
+                                                int i = group.GetSpriteIndex(w, h, l, x, y, z, f);
+                                                int ni = newGroup.GetSpriteIndex(w, h, l, x, y, z, f + 1);
+                                                newGroup.SpriteIDs[ni] = group.SpriteIDs[i];
                                             }
-
-                                            newGroup.SpriteIDs[ni] = group.SpriteIDs[i];
                                         }
                                     }
                                 }
