@@ -44,13 +44,13 @@ namespace OpenTibia.Client.Things
         private static readonly OutfitData OUTFIT_DATA = new OutfitData();
 
         private ThingType type;
-        private SpriteGroups sprites;
+        private SpriteGroup sprites;
 
         #endregion
 
         #region | Constructor |
-        
-        public ThingData(ThingType type, SpriteGroups sprites, DatFormat format)
+
+        public ThingData(ThingType type, SpriteGroup sprites, DatFormat format)
         {
             if (type == null)
             {
@@ -67,7 +67,7 @@ namespace OpenTibia.Client.Things
             this.Format = format;
         }
 
-        public ThingData(ThingType type, SpriteGroups sprites)
+        public ThingData(ThingType type, SpriteGroup sprites)
         {
             if (type == null)
             {
@@ -106,7 +106,7 @@ namespace OpenTibia.Client.Things
             }
         }
 
-        public SpriteGroups Sprites
+        public SpriteGroup Sprites
         {
             get
             {
@@ -140,6 +140,14 @@ namespace OpenTibia.Client.Things
             }
         }
 
+        public byte FrameGroupCount
+        {
+            get
+            {
+                return (byte)this.ThingType.frameGroups.Count;
+            }
+        }
+
         public DatFormat Format { get; private set; }
 
         #endregion
@@ -151,26 +159,26 @@ namespace OpenTibia.Client.Things
             return string.Format("(ThingData id={0}, category={1}", this.ID, this.Category);
         }
 
-        public bool ContainsFrameGroup(FrameGroupType type)
+        public bool HasFrameGroup(FrameGroupType type)
         {
             return this.type.frameGroups.ContainsKey(type);
         }
 
         public FrameGroup GetFrameGroup(FrameGroupType groupType)
         {
-            if (this.type != null)
-            {
-                return this.type.GetFrameGroup(groupType);
-            }
-
-            return null;
+            return this.type.GetFrameGroup(groupType);
         }
 
         public FrameGroup GetFrameGroup()
         {
-            if (this.type != null)
+            return this.type.GetFrameGroup(FrameGroupType.Default);
+        }
+
+        public Sprite[] GetSprites(FrameGroupType groupType)
+        {
+            if (this.sprites.ContainsKey(groupType))
             {
-                return this.type.GetFrameGroup(FrameGroupType.Default);
+                return this.sprites[groupType];
             }
 
             return null;
@@ -330,6 +338,11 @@ namespace OpenTibia.Client.Things
         public SpriteSheet GetSpriteSheet()
         {
             return this.GetSpriteSheet(FrameGroupType.Default);
+        }
+
+        public ThingData Clone()
+        {
+            return new ThingData(this.type.Clone(), this.sprites.Clone());
         }
 
         #endregion

@@ -63,7 +63,7 @@ namespace OpenTibia.Client.Sprites
 
         public Sprite() : this(0, false)
         {
-           ////
+            ////
         }
 
         #endregion
@@ -82,7 +82,7 @@ namespace OpenTibia.Client.Sprites
         public bool Transparent
         {
             get
-            { 
+            {
                 return this.transparent;
             }
 
@@ -199,6 +199,13 @@ namespace OpenTibia.Client.Sprites
 
             this.CompressedPixels = CompressBitmap(bitmap, this.transparent);
             this.bitmap = bitmap;
+        }
+
+        public Sprite Clone()
+        {
+            Sprite clone = new Sprite(this.ID, this.transparent);
+            clone.CompressedPixels = this.CompressedPixels != null ? (byte[])this.CompressedPixels.Clone() : null;
+            return clone;
         }
 
         #endregion

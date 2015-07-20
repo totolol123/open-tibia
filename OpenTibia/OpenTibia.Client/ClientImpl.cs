@@ -74,7 +74,7 @@ namespace OpenTibia.Client
 
         #region | Public Properties |
 
-        public ThingTypeStorage Things { get;  private set; }
+        public ThingTypeStorage Things { get; private set; }
 
         public SpriteStorage Sprites { get; private set; }
 
@@ -118,8 +118,10 @@ namespace OpenTibia.Client
             }
 
             this.Things.ProgressChanged += new ProgressHandler(this.StorageProgressChanged_Handler);
+            this.Things.StorageChanged += new ThingListChangedHandler(this.ThingListChanged_Handler);
             this.Things.StorageCompiled += new EventHandler(this.StorageCompiled_Handler);
             this.Things.StorageDisposed += new EventHandler(this.StorageDisposed_Handler);
+            this.Sprites.StorageChanged += new SpriteListChangedHandler(this.SpriteListChanged_Handler);
             this.Sprites.ProgressChanged += new ProgressHandler(this.StorageProgressChanged_Handler);
             this.Sprites.StorageCompiled += new EventHandler(this.StorageCompiled_Handler);
             this.Sprites.StorageDisposed += new EventHandler(this.StorageDisposed_Handler);
@@ -167,8 +169,10 @@ namespace OpenTibia.Client
             }
 
             this.Things.ProgressChanged += new ProgressHandler(this.StorageProgressChanged_Handler);
+            this.Things.StorageChanged += new ThingListChangedHandler(this.ThingListChanged_Handler);
             this.Things.StorageCompiled += new EventHandler(this.StorageCompiled_Handler);
             this.Things.StorageDisposed += new EventHandler(this.StorageDisposed_Handler);
+            this.Sprites.StorageChanged += new SpriteListChangedHandler(this.SpriteListChanged_Handler);
             this.Sprites.ProgressChanged += new ProgressHandler(this.StorageProgressChanged_Handler);
             this.Sprites.StorageCompiled += new EventHandler(this.StorageCompiled_Handler);
             this.Sprites.StorageDisposed += new EventHandler(this.StorageDisposed_Handler);
@@ -210,7 +214,7 @@ namespace OpenTibia.Client
                 thing = ThingType.ToSingleFrameGroup(thing);
             }
 
-            SpriteGroups spriteGroups = new SpriteGroups();
+            SpriteGroup spriteGroups = new SpriteGroup();
 
             Console.WriteLine(thing.FrameGroupCount);
 
@@ -396,7 +400,7 @@ namespace OpenTibia.Client
             {
                 return null;
             }
-            
+
             FrameGroup group = thing.GetFrameGroup(groupType);
             int totalX = group.PatternZ * group.PatternX * group.Layers;
             int totalY = group.Frames * group.PatternY;
@@ -518,7 +522,7 @@ namespace OpenTibia.Client
                                 int px = rect.X;
                                 int py = rect.Y;
                                 grayLocker.CopyPixels(rawSpriteSheet.Bitmap, rx, ry, rw, rh, px, py);
-                                
+
                                 // gets blend bitmap
                                 i++;
                                 rect = rawSpriteSheet.RectList[i];
@@ -595,7 +599,7 @@ namespace OpenTibia.Client
 
             return true;
         }
-        
+
         public bool Save(string datPath, string sprPath, Core.Version version)
         {
             return this.Save(datPath, sprPath, version, ClientFeatures.None);
@@ -616,6 +620,7 @@ namespace OpenTibia.Client
             if (this.Things != null)
             {
                 this.Things.ProgressChanged -= new ProgressHandler(this.StorageProgressChanged_Handler);
+                this.Things.StorageChanged -= new ThingListChangedHandler(this.ThingListChanged_Handler);
                 this.Things.StorageCompiled -= new EventHandler(this.StorageCompiled_Handler);
                 this.Things.StorageDisposed -= new EventHandler(this.StorageDisposed_Handler);
                 this.Things.Dispose();
@@ -625,6 +630,7 @@ namespace OpenTibia.Client
             if (this.Sprites != null)
             {
                 this.Sprites.ProgressChanged -= new ProgressHandler(this.StorageProgressChanged_Handler);
+                this.Sprites.StorageChanged -= new SpriteListChangedHandler(this.SpriteListChanged_Handler);
                 this.Sprites.StorageCompiled -= new EventHandler(this.StorageCompiled_Handler);
                 this.Sprites.StorageDisposed -= new EventHandler(this.StorageDisposed_Handler);
                 this.Sprites.Dispose();
@@ -658,6 +664,22 @@ namespace OpenTibia.Client
             if (!this.Loaded && this.ClientUnloaded != null)
             {
                 this.ClientUnloaded(this, new EventArgs());
+            }
+        }
+
+        private void ThingListChanged_Handler(object sender, ThingListChangedArgs e)
+        {
+            if (this.ClientChanged != null)
+            {
+                this.ClientChanged(this, new EventArgs());
+            }
+        }
+
+        private void SpriteListChanged_Handler(object sender, SpriteListChangedArgs e)
+        {
+            if (this.ClientChanged != null)
+            {
+                this.ClientChanged(this, new EventArgs());
             }
         }
 

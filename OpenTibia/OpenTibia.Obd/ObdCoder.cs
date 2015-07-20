@@ -631,7 +631,7 @@ namespace OpenTibia.Obd
             }
 
             group.SpriteIDs = new uint[totalSprites];
-            SpriteGroups spriteGroup = new SpriteGroups();
+            SpriteGroup spriteGroup = new SpriteGroup();
             Sprite[] sprites = new Sprite[totalSprites];
 
             for (int i = 0; i < totalSprites; i++)

@@ -75,7 +75,7 @@
     <Compile Include="OpenTibia.Client\Things\ThingType.cs" />
     <Compile Include="OpenTibia.Client\Things\ThingTypeSerializer.cs" />
     <Compile Include="OpenTibia.Client\Things\ThingTypeStorage.cs" />
-    <Compile Include="OpenTibia.Collections\SpriteGroups.cs" />
+    <Compile Include="OpenTibia.Collections\SpriteGroup.cs" />
     <Compile Include="OpenTibia.Controls\ColorChangedArgs.cs" />
     <Compile Include="OpenTibia.Controls\EightBitColorGrid.cs">
       <SubType>Component</SubType>

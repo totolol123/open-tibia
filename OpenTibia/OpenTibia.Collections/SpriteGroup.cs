@@ -23,6 +23,7 @@
 #endregion
 
 #region Using Statements
+using System;
 using OpenTibia.Animation;
 using OpenTibia.Client.Sprites;
 using System.Collections.Generic;
@@ -31,10 +32,10 @@ using System.Drawing;
 
 namespace OpenTibia.Collections
 {
-    public class SpriteGroups : Dictionary<FrameGroupType, Sprite[]>
+    public class SpriteGroup : Dictionary<FrameGroupType, Sprite[]>
     {
         #region Public Methods
-        
+
         public Sprite GetSprite(int index, FrameGroupType groupType)
         {
             if (this.ContainsKey(groupType))
@@ -87,6 +88,44 @@ namespace OpenTibia.Collections
             }
 
             return null;
+        }
+
+        public void SetSprites(FrameGroupType groupType, Sprite[] sprites)
+        {
+            if (sprites == null)
+            {
+                throw new ArgumentNullException("sprites");
+            }
+
+            if (this.ContainsKey(groupType))
+            {
+                this[groupType] = sprites;
+            }
+            else
+            {
+                this.Add(groupType, sprites);
+            }
+        }
+
+        public SpriteGroup Clone()
+        {
+            SpriteGroup clone = new SpriteGroup();
+
+            foreach (KeyValuePair<FrameGroupType, Sprite[]> item in this)
+            {
+                Sprite[] sprites = item.Value;
+                int length = sprites.Length;
+                Sprite[] cloneSprites = new Sprite[length];
+
+                for (int i = 0; i < length; i++)
+                {
+                    cloneSprites[i] = sprites[i].Clone();
+                }
+
+                clone.Add(item.Key, cloneSprites);
+            }
+
+            return clone;
         }
 
         #endregion

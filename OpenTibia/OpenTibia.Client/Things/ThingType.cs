@@ -78,7 +78,7 @@ namespace OpenTibia.Client.Things
             this.frameGroups = new Dictionary<FrameGroupType, FrameGroup>();
         }
 
-        public ThingType(ThingCategory category) : this (0, category)
+        public ThingType(ThingCategory category) : this(0, category)
         {
             ////
         }
@@ -298,7 +298,7 @@ namespace OpenTibia.Client.Things
         #endregion
 
         #region | Offset |
-        
+
         [DisplayName("Has Offset")]
         [Category("Offset")]
         [Description("...")]
@@ -320,7 +320,7 @@ namespace OpenTibia.Client.Things
         #endregion
 
         #region | Elevation |
-        
+
         [DisplayName("Has Elevation")]
         [Category("Elevation")]
         [Description("...")]
@@ -384,7 +384,7 @@ namespace OpenTibia.Client.Things
         #endregion
 
         #region | Market |
-        
+
         [DisplayName("Is Market Item")]
         [Category("Market")]
         [Description("...")]
@@ -491,6 +491,19 @@ namespace OpenTibia.Client.Things
             }
 
             return group;
+        }
+
+        public ThingType Clone()
+        {
+            ThingType clone = (ThingType)this.MemberwiseClone();
+            clone.frameGroups = new Dictionary<FrameGroupType, FrameGroup>();
+
+            foreach (KeyValuePair<FrameGroupType, FrameGroup> keyValue in this.frameGroups)
+            {
+                clone.frameGroups.Add(keyValue.Key, keyValue.Value.Clone());
+            }
+
+            return clone;
         }
 
         #endregion
